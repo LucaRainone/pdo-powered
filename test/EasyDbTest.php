@@ -22,11 +22,12 @@ class EasyDbTest extends TestCase
 
         $db = $this->getDbInstance();
 
-        $stmt = $db->query("SELECT 1 as const");
+        $row  = $db->query("SELECT 1 as const")->fetch();
 
         self::assertTrue($db->isConnected(), "Database should be connected at this point");
 
-        self::assertArrayHasKey("const", $stmt->fetch());
+        self::assertArrayHasKey("const", $row, "default resultset is ASSOC");
+        self::assertArrayNotHasKey("0", $row, "default resultset should me ASSOC");
     }
 
     /**

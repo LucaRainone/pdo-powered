@@ -232,6 +232,9 @@ class ResultSet
 
     public function fetch($fetch_style = null, $cursor_orientation = \PDO::FETCH_ORI_NEXT, $cursor_offset = 0)
     {
+        if(is_null($fetch_style))
+            $fetch_style = \PDO::FETCH_ASSOC;
+
         return $this->statement->fetch($fetch_style, $cursor_orientation, $cursor_offset);
     }
 
@@ -245,9 +248,12 @@ class ResultSet
         return $this->statement->fetchColumn($column_number);
     }
 
-    public function fetchAll()
+    public function fetchAll($fetch_style = null)
     {
-        return $this->statement->fetchAll();
+        if(is_null($fetch_style))
+            $fetch_style = \PDO::FETCH_ASSOC;
+
+        return $this->statement->fetchAll($fetch_style);
     }
 
     public function fetchObject($class_name = "\\stdClass", array $ctor_args = array())
