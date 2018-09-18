@@ -8,6 +8,7 @@ class EasyDb
     const CONNECTION_ERROR = 1;
 
     private $pdo;
+    private $_isConnected = false;
 
     private static $connectionTry = 0;
     public static $MAX_TRY_CONNECTION = 3;
@@ -22,7 +23,7 @@ class EasyDb
         $this->dbConfig = $dbConfig;
     }
 
-    public function query($query, $params = [])
+    public function query($query, $params = []) : ResultSet
     {
 
         $stmt = $this->getPDO()->prepare($query);
@@ -36,21 +37,6 @@ class EasyDb
             throw new Exception("Query Error " . json_encode($stmt->errorInfo()));
 
         return new ResultSet($stmt);
-    }
-
-    private function _buildFieldsAndValues($params)
-    {
-        $fields = [];
-        $values = [];
-        foreach ($params as $field => $value) {
-            if ($value instanceof Expression) {
-                $values[] = $value->get();
-            } else {
-                $values[] = ":$field";
-            }
-            $fields[] = $field;
-        }
-        return [$fields, $values];
     }
 
     private function _insertOrInsertOnDuplicateKey($table, array $params, $withOnDuplicateKey = false)
@@ -78,7 +64,7 @@ class EasyDb
 
         foreach ($params as $field => $value)
             if (!($value instanceof Expression))
-                $sth->bindValue(":$field", $value, is_int($value)? \PDO::PARAM_INT : \PDO::PARAM_STR);
+                $sth->bindValue(":$field", $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
 
 
         $res = $sth->execute();
@@ -107,18 +93,21 @@ class EasyDb
         foreach ($where as $field => $value)
             if (!($value instanceof Expression))
                 $parts[] = "$field = :$field";
+            else
+                $parts[] = "$field = {$value->get()}";
 
         $conditionPart = implode(" AND ", $parts);
 
         $sth = $db->prepare("DELETE FROM $table WHERE $conditionPart");
 
-        foreach ($where as $field => $value) {
-            $sth->bindValue(":$field", $value);
-        }
+        foreach ($where as $field => $value)
+            if (!($value instanceof Expression))
+                $sth->bindValue(":$field", $value);
+
         $res = $sth->execute();
 
         if (!$res)
-            throw new Exception("Update failed " . json_encode($sth->errorInfo()));
+            throw new Exception("Delete failed " . json_encode($sth->errorInfo()));
 
         return $sth->rowCount();
     }
@@ -185,9 +174,29 @@ class EasyDb
         $db->commit();
     }
 
+    public function isConnected()
+    {
+        return $this->_isConnected;
+    }
+
     private function getPDO()
     {
         return $this->pdo ?: $this->connectAndFetchPDOInstance();
+    }
+
+    private function _buildFieldsAndValues($params)
+    {
+        $fields = [];
+        $values = [];
+        foreach ($params as $field => $value) {
+            if ($value instanceof Expression) {
+                $values[] = $value->get();
+            } else {
+                $values[] = ":$field";
+            }
+            $fields[] = $field;
+        }
+        return [$fields, $values];
     }
 
     private function connectAndFetchPDOInstance()
@@ -195,11 +204,12 @@ class EasyDb
         try {
             $this->pdo = new \PDO($this->dbConfig->getConnectionString(), $this->dbConfig->getUser(), $this->dbConfig->getPassword());
             unset($this->dbConfig);
+            $this->_isConnected = true;
             return $this->pdo;
         } catch (\Exception $e) {
             error_log($e->getMessage());
 
-            if(self::$connectionTry++ < self::$MAX_TRY_CONNECTION) {
+            if (self::$connectionTry++ < self::$MAX_TRY_CONNECTION) {
                 sleep(1);
                 return $this->connectAndFetchPDOInstance();
             }
