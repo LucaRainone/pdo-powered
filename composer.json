@@ -1,0 +1,26 @@
+{
+  "name" : "rain1/easy-db",
+  "type": "library",
+  "description": "Db class for easy db interaction",
+  "keywords" : ["MySQL", "SQL", "PDO", "database", "db"],
+  "license" : "MIT",
+  "authors" : [
+    {
+      "name" : "Luca Rainone",
+      "email": "luca.rainone@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {"rain1\\EasyDb\\": "./src"},
+    "exclude-from-classmap": [
+      "/test/"
+    ]
+  },
+  "require" : {
+    "php" : ">= 7.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^6.5",
+    "satooshi/php-coveralls": "^2.0"
+  }
+}
