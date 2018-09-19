@@ -5,6 +5,7 @@ namespace rain1\EasyDb\test;
 use PHPUnit\Framework\TestCase;
 use rain1\EasyDb\DbConfig;
 use rain1\EasyDb\EasyDb;
+use rain1\EasyDb\Exception;
 use rain1\EasyDb\Expression;
 
 class EasyDbTest extends TestCase
@@ -22,7 +23,7 @@ class EasyDbTest extends TestCase
 
         $db = $this->getDbInstance();
 
-        $row  = $db->query("SELECT 1 as const")->fetch();
+        $row = $db->query("SELECT 1 as const")->fetch();
 
         self::assertTrue($db->isConnected(), "Database should be connected at this point");
 
@@ -237,6 +238,165 @@ class EasyDbTest extends TestCase
 
     }
 
+    public function testRowCount()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
+        $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
+        $db->insert("tabletest", ['col1' => 'testcol1_3', 'col2' => 'testcol2_3']);
+
+        $rowCount = $db->query("UPDATE tabletest SET col1 = 'updated' WHERE id > 1")->rowCount();
+
+        self::assertEquals(2, $rowCount);
+    }
+
+    public function testFetchObject()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
+        $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
+
+        $stmt = $db->query("SELECT * FROM tabletest");
+
+        $obj = $stmt->fetchObject();
+
+        self::assertInstanceOf(\stdClass::class, $obj);
+        self::assertEquals("testcol1_1", $obj->col1);
+
+        $obj = $stmt->fetchObject();
+
+        self::assertInstanceOf(\stdClass::class, $obj);
+        self::assertEquals("testcol1_2", $obj->col1);
+
+        $obj = $stmt->fetchObject();
+        self::assertFalse($obj);
+
+    }
+
+    public function testFetchObjects()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
+        $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
+
+        $stmt = $db->query("SELECT * FROM tabletest");
+
+        $objs = $stmt->fetchObjects();
+
+        self::assertTrue(is_array($objs));
+        self::assertCount(2, $objs);
+
+        foreach ($objs as $obj) {
+            self::assertInstanceOf(\stdClass::class, $obj);
+            self::assertObjectHasAttribute("col1", $obj);
+            self::assertObjectHasAttribute("col2", $obj);
+        }
+
+    }
+
+    public function testFetchColumn()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
+        $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
+
+        $stmt = $db->query("SELECT col1, col2 FROM tabletest");
+
+        self::assertEquals("testcol1_1", $stmt->fetchColumn());
+        self::assertEquals("testcol1_2", $stmt->fetchColumn());
+        self::assertFalse($stmt->fetchColumn());
+
+        $stmt = $db->query("SELECT col1, col2 FROM tabletest");
+
+        self::assertEquals("testcol2_1", $stmt->fetchColumn(1));
+        self::assertEquals("testcol2_2", $stmt->fetchColumn(1));
+        self::assertFalse($stmt->fetchColumn(1));
+    }
+
+    public function testErrorCode()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        try {
+            $db->query("SELEKT WRONG SYNTAX");
+            self::assertFalse(true, "An Exception should be thrown on a wrong query");
+        } catch (\Exception $e) {
+            self::assertInstanceOf(Exception::class, $e);
+            self::assertContains("42000", $e->getMessage());
+        }
+    }
+
+    public function testDebug()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $debug = $db->query("SELECT * FROM tabletest WHERE id IN (:var1,:var2)", ['var1' => 1, 'var2' => 2])->debugDumpParams();
+
+        self::assertTrue(is_string($debug));
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testFailUpdate()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->update("unknowntable", ['col' => 1], ['id' => 1]);
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testFailDelete()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->delete("unknowntable", ['id' => 1]);
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testFailInsert()
+    {
+        $this->createCleanDatabase();
+        $db = $this->getDbInstance();
+
+        $db->delete("unknowntable", ['id' => 1]);
+    }
+
+    public function testMysqlNotAvailable() {
+        $config = new DbConfig(
+            "",
+            "wrongusername",
+            "wrongpass",
+            $GLOBALS['DB_HOST'],
+            $GLOBALS['DB_PORT'],
+            "utf8"
+        );
+        $db = new EasyDb($config);
+        self::assertTrue(true, "lazy loading");
+
+        try {
+            $db->query("SELECT * FROM user");
+            self::assertTrue(false, "An exception should be thrown if there are connection problem");
+        }catch(Exception $e) {
+            self::assertNotContains("wrongpass", $e->getMessage(), "Connection error should not contains the password");
+        }
+    }
 
     private function createCleanDatabase()
     {
@@ -268,9 +428,11 @@ class EasyDbTest extends TestCase
             );
             $this->db = new EasyDb($config);
             self::assertFalse($this->db->isConnected(), "EasyDb should support lazy connection by default");
-            $this->db->query("SELECT 1")->fetch();
+            $stmt = $this->db->query("SELECT 1");
             self::assertTrue($this->db->isConnected(), "EasyDb should be connected after the first query");
+            self::assertInstanceOf(\PDOStatement::class, $stmt->getPDOStatement());
         }
+
         return $this->db;
 
     }

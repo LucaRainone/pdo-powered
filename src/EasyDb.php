@@ -23,7 +23,7 @@ class EasyDb
         $this->dbConfig = $dbConfig;
     }
 
-    public function query($query, $params = []) : ResultSet
+    public function query($query, $params = []): ResultSet
     {
 
         $stmt = $this->getPDO()->prepare($query);
@@ -34,7 +34,7 @@ class EasyDb
         $res = $stmt->execute($params);
 
         if (!$res)
-            throw new Exception("Query Error " . json_encode($stmt->errorInfo()));
+            throw new Exception("Query Error ({$stmt->errorCode()}: " . json_encode($stmt->errorInfo()), $stmt->errorCode());
 
         return new ResultSet($stmt);
     }
@@ -69,7 +69,7 @@ class EasyDb
 
         $res = $sth->execute();
         if (!$res)
-            throw new Exception("Insert Error " . json_encode($sth->errorInfo()));
+            throw new Exception("Insert Error  ({$sth->errorCode()}) " . json_encode($sth->errorInfo()));
 
         return $db->lastInsertId();
     }
@@ -107,7 +107,7 @@ class EasyDb
         $res = $sth->execute();
 
         if (!$res)
-            throw new Exception("Delete failed " . json_encode($sth->errorInfo()));
+            throw new Exception("Delete failed ({$sth->errorCode()}) " . json_encode($sth->errorInfo()));
 
         return $sth->rowCount();
     }
@@ -149,7 +149,7 @@ class EasyDb
         $res = $sth->execute();
 
         if (!$res)
-            throw new Exception("Update failed " . print_r($sth->errorInfo(), true));
+            throw new Exception("Update failed ({$sth->errorCode()})  " . json_encode($sth->errorInfo(), true));
 
         return $sth->rowCount();
 
@@ -209,14 +209,20 @@ class EasyDb
         } catch (\Exception $e) {
             error_log($e->getMessage());
 
-            if (self::$connectionTry++ < self::$MAX_TRY_CONNECTION) {
+            if (++self::$connectionTry < self::$MAX_TRY_CONNECTION) {
                 sleep(1);
                 return $this->connectAndFetchPDOInstance();
             }
+
             $hasPassword = !!$this->dbConfig->getPassword();
-            unset($this->dbConfig);
+            $this->hideSensibileInfos();
             throw new Exception("Failed to connect Mysql server. Using password: " . ($hasPassword ? "YES" : "NO"), self::CONNECTION_ERROR);
         }
+    }
+
+    private function hideSensibileInfos()
+    {
+        unset($this->dbConfig);
     }
 }
 
@@ -230,9 +236,14 @@ class ResultSet
         return $this->statement = $PDOStatement;
     }
 
+    public function getPDOStatement()
+    {
+        return $this->statement;
+    }
+
     public function fetch($fetch_style = null, $cursor_orientation = \PDO::FETCH_ORI_NEXT, $cursor_offset = 0)
     {
-        if(is_null($fetch_style))
+        if (is_null($fetch_style))
             $fetch_style = \PDO::FETCH_ASSOC;
 
         return $this->statement->fetch($fetch_style, $cursor_orientation, $cursor_offset);
@@ -250,7 +261,7 @@ class ResultSet
 
     public function fetchAll($fetch_style = null)
     {
-        if(is_null($fetch_style))
+        if (is_null($fetch_style))
             $fetch_style = \PDO::FETCH_ASSOC;
 
         return $this->statement->fetchAll($fetch_style);
@@ -270,54 +281,11 @@ class ResultSet
         return $rows;
     }
 
-    public function errorCode()
-    {
-        return $this->statement->errorCode();
-    }
-
-    public function errorInfo()
-    {
-        return $this->statement->errorInfo();
-    }
-
-    public function setAttribute($attribute, $value)
-    {
-        return $this->statement->setAttribute($attribute, $value);
-    }
-
-    public function getAttribute($attribute)
-    {
-        return $this->statement->getAttribute($attribute);
-    }
-
-    public function columnCount()
-    {
-        return $this->statement->columnCount();
-    }
-
-    public function getColumnMeta($column)
-    {
-        return $this->statement->getColumnMeta($column);
-    }
-
-    public function setFetchMode($mode, $classNameObject, array $ctorarfg)
-    {
-        return $this->statement->setFetchMode($mode, $classNameObject, $ctorarfg);
-    }
-
-    public function nextRowset()
-    {
-        return $this->statement->nextRowset();
-    }
-
-    public function closeCursor()
-    {
-        return $this->statement->closeCursor();
-    }
-
     public function debugDumpParams()
     {
-        return $this->statement->debugDumpParams();
+        ob_start();
+        $this->statement->debugDumpParams();
+        return ob_get_clean();
     }
 
 
