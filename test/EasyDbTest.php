@@ -395,7 +395,7 @@ class EasyDbTest extends TestCase
     {
         $db = $this->getDbInstance();
         $onConnectCalled = false;
-        $db->onConnect(function() use(&$onConnectCalled){
+        $db->onConnect(function () use (&$onConnectCalled) {
             $onConnectCalled = true;
         });
         self::assertFalse($onConnectCalled);
@@ -408,13 +408,14 @@ class EasyDbTest extends TestCase
         $db = $this->getDbInstance();
         $db->query("SELECT 1");
         $onConnectCalled = false;
-        $db->onConnect(function() use(&$onConnectCalled){
+        $db->onConnect(function () use (&$onConnectCalled) {
             $onConnectCalled = true;
         });
         self::assertTrue($onConnectCalled);
     }
 
-    public function testSetAttributeBeforeConnection() {
+    public function testSetAttributeBeforeConnection()
+    {
         $db = $this->getDbInstance();
         $db->setPDOAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_CLASS);
         $stm = $class = $db->query("SELECT 1 as col");
@@ -469,7 +470,8 @@ class EasyDbTest extends TestCase
         $db->query("TRUNCATE TABLE tabletest");
     }
 
-    private function getInstance() {
+    private function getInstance()
+    {
         $config = new DbConfig(
             "",
             $GLOBALS['DB_USER'],
@@ -481,7 +483,8 @@ class EasyDbTest extends TestCase
         return new EasyDb($config);
     }
 
-    public function testLazyConnection() {
+    public function testLazyConnection()
+    {
         $db = $this->getInstance();
         self::assertFalse($db->isConnected(), "EasyDb should support lazy connection by default");
         $stmt = $db->query("SELECT 1");

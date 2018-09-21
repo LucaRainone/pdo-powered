@@ -34,11 +34,14 @@ class EasyDb
         $this->_addListener('connectFailure', $callback);
     }
 
-    public function onDebug($callback) {
+    public function onDebug($callback)
+    {
         $this->_addListener('debug', $callback);
     }
-    public function onConnect($callback) {
-        if($this->_isConnected)
+
+    public function onConnect($callback)
+    {
+        if ($this->_isConnected)
             $callback($this);
         else
             $this->_addListener('connect', $callback);
@@ -91,7 +94,7 @@ class EasyDb
 
         $sth = $db->prepare($qry);
 
-        $params = array_filter($params, function($el) {
+        $params = array_filter($params, function ($el) {
             return !($el instanceof Expression);
         });
 
@@ -241,11 +244,12 @@ class EasyDb
         return [$fields, $values];
     }
 
-    public function setPDOAttribute($attributeName, $attributeValue) {
-        if($this->pdo instanceof \PDO)
+    public function setPDOAttribute($attributeName, $attributeValue)
+    {
+        if ($this->pdo instanceof \PDO)
             $this->pdo->setAttribute($attributeName, $attributeValue);
         else
-            $this->onConnect(function() use($attributeName, $attributeValue){
+            $this->onConnect(function () use ($attributeName, $attributeValue) {
                 $this->setPDOAttribute($attributeName, $attributeValue);
             });
     }
