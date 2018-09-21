@@ -332,14 +332,15 @@ class EasyDbTest extends TestCase
         self::assertTrue(is_string($debug));
     }
 
-    public function testOverrideAttribute() {
+    public function testOverrideAttribute()
+    {
         $db = $this->importDbAndFetchInstance();
 
-        $db->onConnect(function(EasyDb $db) {
+        $db->onConnect(function (EasyDb $db) {
             $db->setPDOAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_BOTH);
         });
 
-        $db->insert("tabletest", ['col1'=> 'col', 'col2' => 'col2']);
+        $db->insert("tabletest", ['col1' => 'col', 'col2' => 'col2']);
 
         $row = $db->query("SELECT id,col1, col2 FROM tabletest")->fetch();
 
@@ -382,12 +383,44 @@ class EasyDbTest extends TestCase
 
 
         $debugCalled = false;
-        $db->onDebug(function ($type, \PDOStatement $stmt = null, ...$args) use(&$debugCalled) {
+        $db->onDebug(function ($type, \PDOStatement $stmt = null, ...$args) use (&$debugCalled) {
             echo "TYPE $type: " . $stmt->queryString . " " . json_encode($args);
             $debugCalled = true;
         });
         $db->query("SELECT * FROM tabletest WHERE id = :id", ['id' => 199]);
         self::assertTrue($debugCalled);
+    }
+
+    public function testOnConnectionBeforeConnection()
+    {
+        $db = $this->getDbInstance();
+        $onConnectCalled = false;
+        $db->onConnect(function() use(&$onConnectCalled){
+            $onConnectCalled = true;
+        });
+        self::assertFalse($onConnectCalled);
+        $db->query("SELECT 1");
+        self::assertTrue($onConnectCalled);
+    }
+
+    public function testOnConnectionAfterConnectionIsImmediate()
+    {
+        $db = $this->getDbInstance();
+        $db->query("SELECT 1");
+        $onConnectCalled = false;
+        $db->onConnect(function() use(&$onConnectCalled){
+            $onConnectCalled = true;
+        });
+        self::assertTrue($onConnectCalled);
+    }
+
+    public function testSetAttributeBeforeConnection() {
+        $db = $this->getDbInstance();
+        $db->setPDOAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_CLASS);
+        $stm = $class = $db->query("SELECT 1 as col");
+        $stm->getPDOStatement()->setFetchMode(\PDO::FETCH_CLASS, \stdClass::class);
+        $class = $stm->fetch();
+        self::assertInstanceOf(\stdClass::class, $class);
     }
 
     public function testMysqlNotAvailable()
@@ -436,30 +469,38 @@ class EasyDbTest extends TestCase
         $db->query("TRUNCATE TABLE tabletest");
     }
 
+    private function getInstance() {
+        $config = new DbConfig(
+            "",
+            $GLOBALS['DB_USER'],
+            $GLOBALS['DB_PASSWD'],
+            $GLOBALS['DB_HOST'],
+            $GLOBALS['DB_PORT'],
+            "utf8"
+        );
+        return new EasyDb($config);
+    }
+
+    public function testLazyConnection() {
+        $db = $this->getInstance();
+        self::assertFalse($db->isConnected(), "EasyDb should support lazy connection by default");
+        $stmt = $db->query("SELECT 1");
+        self::assertTrue($db->isConnected(), "EasyDb should be connected after the first query");
+        self::assertInstanceOf(\PDOStatement::class, $stmt->getPDOStatement());
+    }
+
     private function getDbInstance()
     {
 
-        if (!$this->db) {
-            $config = new DbConfig(
-                "",
-                $GLOBALS['DB_USER'],
-                $GLOBALS['DB_PASSWD'],
-                $GLOBALS['DB_HOST'],
-                $GLOBALS['DB_PORT'],
-                "utf8"
-            );
-            $this->db = new EasyDb($config);
-            self::assertFalse($this->db->isConnected(), "EasyDb should support lazy connection by default");
-            $stmt = $this->db->query("SELECT 1");
-            self::assertTrue($this->db->isConnected(), "EasyDb should be connected after the first query");
-            self::assertInstanceOf(\PDOStatement::class, $stmt->getPDOStatement());
-        }
+        if (!$this->db)
+            $this->db = $this->getInstance();
 
         return $this->db;
 
     }
-    
-    private function importDbAndFetchInstance() {
+
+    private function importDbAndFetchInstance()
+    {
         $this->createCleanDatabase();
         return $this->getDbInstance();
     }
