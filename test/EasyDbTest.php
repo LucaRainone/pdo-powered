@@ -332,6 +332,20 @@ class EasyDbTest extends TestCase
         self::assertTrue(is_string($debug));
     }
 
+    public function testOverrideAttribute() {
+        $db = $this->importDbAndFetchInstance();
+
+        $db->onConnect(function(EasyDb $db) {
+            $db->setPDOAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_BOTH);
+        });
+
+        $db->insert("tabletest", ['col1'=> 'col', 'col2' => 'col2']);
+
+        $row = $db->query("SELECT id,col1, col2 FROM tabletest")->fetch();
+
+        self::assertEquals(6, count($row));
+    }
+
     /**
      * @expectedException Exception
      */

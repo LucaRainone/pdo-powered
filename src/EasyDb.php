@@ -19,7 +19,7 @@ class EasyDb
     private $dbConfig;
 
     private $callbacks = [
-        'afterConnection' => [],
+        'connectFailure' => [],
         'connect' => [],
         'debug' => []
     ];
@@ -38,7 +38,10 @@ class EasyDb
         $this->_addListener('debug', $callback);
     }
     public function onConnect($callback) {
-        $this->_addListener('connect', $callback);
+        if($this->_isConnected)
+            $callback($this);
+        else
+            $this->_addListener('connect', $callback);
     }
 
     private function _addListener($eventName, $callback)
@@ -253,13 +256,13 @@ class EasyDb
             $this->pdo = new \PDO($this->dbConfig->getConnectionString(), $this->dbConfig->getUser(), $this->dbConfig->getPassword());
             unset($this->dbConfig);
             $this->_isConnected = true;
-            $this->trigger("connect");
             $this->pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+            $this->trigger("connect", $this);
             return $this->pdo;
         } catch (\Exception $e) {
 
             if (++$this->connectionTry < self::$MAX_TRY_CONNECTION) {
-                $this->trigger("connectFailure", [$this->connectionTry]);
+                $this->trigger("connectFailure", $this->connectionTry);
                 return $this->connectAndFetchPDOInstance();
             }
 
@@ -269,7 +272,7 @@ class EasyDb
         }
     }
 
-    private function trigger($eventName, $args = [])
+    private function trigger($eventName, ...$args)
     {
         foreach ($this->callbacks[$eventName] as $callback)
             call_user_func_array($callback, $args);
@@ -278,7 +281,7 @@ class EasyDb
 
     private function debug()
     {
-        $this->trigger('debug', func_get_args());
+        call_user_func_array([$this, "trigger"], array_merge(["debug"], func_get_args()));
     }
 
     private function hideSensibileInfos()
@@ -305,9 +308,6 @@ class ResultSet
 
     public function fetch($fetch_style = null, $cursor_orientation = \PDO::FETCH_ORI_NEXT, $cursor_offset = 0)
     {
-        if (is_null($fetch_style))
-            $fetch_style = \PDO::FETCH_ASSOC;
-
         return $this->statement->fetch($fetch_style, $cursor_orientation, $cursor_offset);
     }
 
@@ -323,9 +323,6 @@ class ResultSet
 
     public function fetchAll($fetch_style = null, $fetch_argument = null, $ctor_args = null)
     {
-        if (is_null($fetch_style))
-            $fetch_style = \PDO::FETCH_ASSOC;
-
         return call_user_func_array(
             [$this->statement, "fetchAll"],
             array_filter([$fetch_style, $fetch_argument, $ctor_args])
