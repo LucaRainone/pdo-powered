@@ -224,7 +224,7 @@ class EasyDb
         return $this->_isConnected;
     }
 
-    private function getPDO()
+    protected function getPDO()
     {
         return $this->pdo ?: $this->connectAndFetchPDOInstance();
     }
