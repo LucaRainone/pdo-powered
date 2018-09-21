@@ -110,8 +110,7 @@ class EasyDbTest extends TestCase
 
     public function testRollbackTransaction()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->beginTransaction();
         $lastInsertId = $db->insert("tabletest", ['col1' => 'testcol1', 'col2' => 'testcol2']);
@@ -125,8 +124,7 @@ class EasyDbTest extends TestCase
 
     public function testCommitTransaction()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->beginTransaction();
         $lastInsertId = $db->insert("tabletest", ['col1' => 'testcol1', 'col2' => 'testcol2']);
@@ -140,8 +138,7 @@ class EasyDbTest extends TestCase
 
     public function testUpdate()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
         $idRow1 = $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $idRow2 = $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
         $db->update("tabletest", [
@@ -173,8 +170,7 @@ class EasyDbTest extends TestCase
 
     public function testInsertOnDuplicateKeyUpdate()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $idRow1 = $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insertOnDuplicateKeyUpdate("tabletest", ['id' => $idRow1, 'col1' => 'updatedCol1', 'col2' => 'updatedCol2']);
@@ -187,8 +183,7 @@ class EasyDbTest extends TestCase
 
     public function testExpressionInInsertOnDuplicateKeyUpdate()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $today = $db->query("SELECT DATE(NOW()) as today")->fetch()['today'];
         $idRow1 = $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
@@ -202,8 +197,7 @@ class EasyDbTest extends TestCase
 
     public function testDelete()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
@@ -211,7 +205,7 @@ class EasyDbTest extends TestCase
 
         $db->delete("tabletest", ['id' => 2]);
 
-        $rows = $db->query("SELECT * FROM tabletest")->fetchALl();
+        $rows = $db->query("SELECT * FROM tabletest")->fetchAll();
 
         self::assertCount(2, $rows);
         self::assertEquals("1", $rows[0]['id']);
@@ -221,8 +215,7 @@ class EasyDbTest extends TestCase
 
     public function testExpressionInDelete()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
@@ -240,8 +233,7 @@ class EasyDbTest extends TestCase
 
     public function testRowCount()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
@@ -254,8 +246,7 @@ class EasyDbTest extends TestCase
 
     public function testFetchObject()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
@@ -279,8 +270,7 @@ class EasyDbTest extends TestCase
 
     public function testFetchObjects()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
@@ -302,8 +292,7 @@ class EasyDbTest extends TestCase
 
     public function testFetchColumn()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->insert("tabletest", ['col1' => 'testcol1_1', 'col2' => 'testcol2_1']);
         $db->insert("tabletest", ['col1' => 'testcol1_2', 'col2' => 'testcol2_2']);
@@ -323,8 +312,7 @@ class EasyDbTest extends TestCase
 
     public function testErrorCode()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         try {
             $db->query("SELEKT WRONG SYNTAX");
@@ -337,8 +325,7 @@ class EasyDbTest extends TestCase
 
     public function testDebug()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $debug = $db->query("SELECT * FROM tabletest WHERE id IN (:var1,:var2)", ['var1' => 1, 'var2' => 2])->debugDumpParams();
 
@@ -350,8 +337,7 @@ class EasyDbTest extends TestCase
      */
     public function testFailUpdate()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->update("unknowntable", ['col' => 1], ['id' => 1]);
     }
@@ -361,8 +347,7 @@ class EasyDbTest extends TestCase
      */
     public function testFailDelete()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->delete("unknowntable", ['id' => 1]);
     }
@@ -372,13 +357,27 @@ class EasyDbTest extends TestCase
      */
     public function testFailInsert()
     {
-        $this->createCleanDatabase();
-        $db = $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
 
         $db->delete("unknowntable", ['id' => 1]);
     }
 
-    public function testMysqlNotAvailable() {
+    public function testDebugCallback()
+    {
+        $db = $this->importDbAndFetchInstance();
+
+
+        $debugCalled = false;
+        $db->onDebug(function ($type, \PDOStatement $stmt = null, ...$args) use(&$debugCalled) {
+            echo "TYPE $type: " . $stmt->queryString . " " . json_encode($args);
+            $debugCalled = true;
+        });
+        $db->query("SELECT * FROM tabletest WHERE id = :id", ['id' => 199]);
+        self::assertTrue($debugCalled);
+    }
+
+    public function testMysqlNotAvailable()
+    {
         $config = new DbConfig(
             "",
             "wrongusername",
@@ -388,13 +387,22 @@ class EasyDbTest extends TestCase
             "utf8"
         );
         $db = new EasyDb($config);
+        $callbackCalled = 0;
+
+        $db->onConnectionFailure(function ($try) use (&$callbackCalled) {
+            $callbackCalled++;
+            self::assertEquals($try, $callbackCalled);
+        });
+
         self::assertTrue(true, "lazy loading");
 
         try {
             $db->query("SELECT * FROM user");
             self::assertTrue(false, "An exception should be thrown if there are connection problem");
-        }catch(Exception $e) {
+        } catch (Exception $e) {
             self::assertNotContains("wrongpass", $e->getMessage(), "Connection error should not contains the password");
+            self::assertNotEquals(0, $callbackCalled);
+            self::assertEquals(EasyDb::$MAX_TRY_CONNECTION - 1, $callbackCalled);
         }
     }
 
@@ -435,5 +443,10 @@ class EasyDbTest extends TestCase
 
         return $this->db;
 
+    }
+    
+    private function importDbAndFetchInstance() {
+        $this->createCleanDatabase();
+        return $this->getDbInstance();
     }
 }

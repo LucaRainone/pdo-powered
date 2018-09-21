@@ -10,7 +10,7 @@ class EasyDb
     private $pdo;
     private $_isConnected = false;
 
-    private static $connectionTry = 0;
+    private $connectionTry = 0;
     public static $MAX_TRY_CONNECTION = 3;
 
     /**
@@ -18,9 +18,32 @@ class EasyDb
      */
     private $dbConfig;
 
+    private $callbacks = [
+        'afterConnection' => [],
+        'connect' => [],
+        'debug' => []
+    ];
+
     public function __construct(DbConfig $dbConfig)
     {
         $this->dbConfig = $dbConfig;
+    }
+
+    public function onConnectionFailure($callback)
+    {
+        $this->_addListener('connectFailure', $callback);
+    }
+
+    public function onDebug($callback) {
+        $this->_addListener('debug', $callback);
+    }
+    public function onConnect($callback) {
+        $this->_addListener('connect', $callback);
+    }
+
+    private function _addListener($eventName, $callback)
+    {
+        $this->callbacks[$eventName][] = $callback;
     }
 
     public function query($query, $params = []): ResultSet
@@ -31,10 +54,13 @@ class EasyDb
         if ($stmt === false)
             throw new Exception("Cannot prepare query " . json_encode($query));
 
+
         $res = $stmt->execute($params);
 
+        $this->debug("query", $stmt, $params);
+
         if (!$res)
-            throw new Exception("Query Error ({$stmt->errorCode()}: " . json_encode($stmt->errorInfo()), $stmt->errorCode());
+            throw new Exception("Query Error ({$stmt->errorCode()}: " . json_encode($stmt->errorInfo()));
 
         return new ResultSet($stmt);
     }
@@ -62,12 +88,17 @@ class EasyDb
 
         $sth = $db->prepare($qry);
 
-        foreach ($params as $field => $value)
-            if (!($value instanceof Expression))
-                $sth->bindValue(":$field", $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        $params = array_filter($params, function($el) {
+            return !($el instanceof Expression);
+        });
 
+        $this->debug("insert" . ($withOnDuplicateKey ? "onDuplicateKey" : ""), $sth);
+
+        foreach ($params as $field => $value)
+            $sth->bindValue(":$field", $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
 
         $res = $sth->execute();
+
         if (!$res)
             throw new Exception("Insert Error  ({$sth->errorCode()}) " . json_encode($sth->errorInfo()));
 
@@ -99,6 +130,8 @@ class EasyDb
         $conditionPart = implode(" AND ", $parts);
 
         $sth = $db->prepare("DELETE FROM $table WHERE $conditionPart");
+
+        $this->debug("delete", $sth);
 
         foreach ($where as $field => $value)
             if (!($value instanceof Expression))
@@ -133,6 +166,9 @@ class EasyDb
         $conditionPart = implode(" AND ", $parts);
 
         $sth = $db->prepare("UPDATE $table SET $setPart WHERE $conditionPart");
+
+        $this->debug("update", $sth);
+
         foreach ($array as $field => $value) {
             if (!($value instanceof Expression)) {
 
@@ -159,18 +195,21 @@ class EasyDb
     public function beginTransaction()
     {
         $db = $this->getPDO();
+        $this->debug("beginTransaction");
         $db->beginTransaction();
     }
 
     public function rollbackTransaction()
     {
         $db = $this->getPDO();
+        $this->debug("rollbackTransaction");
         $db->rollBack();
     }
 
     public function commitTransaction()
     {
         $db = $this->getPDO();
+        $this->debug("commitTransaction");
         $db->commit();
     }
 
@@ -199,18 +238,28 @@ class EasyDb
         return [$fields, $values];
     }
 
+    public function setPDOAttribute($attributeName, $attributeValue) {
+        if($this->pdo instanceof \PDO)
+            $this->pdo->setAttribute($attributeName, $attributeValue);
+        else
+            $this->onConnect(function() use($attributeName, $attributeValue){
+                $this->setPDOAttribute($attributeName, $attributeValue);
+            });
+    }
+
     private function connectAndFetchPDOInstance()
     {
         try {
             $this->pdo = new \PDO($this->dbConfig->getConnectionString(), $this->dbConfig->getUser(), $this->dbConfig->getPassword());
             unset($this->dbConfig);
             $this->_isConnected = true;
+            $this->trigger("connect");
+            $this->pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
             return $this->pdo;
         } catch (\Exception $e) {
-            error_log($e->getMessage());
 
-            if (++self::$connectionTry < self::$MAX_TRY_CONNECTION) {
-                sleep(1);
+            if (++$this->connectionTry < self::$MAX_TRY_CONNECTION) {
+                $this->trigger("connectFailure", [$this->connectionTry]);
                 return $this->connectAndFetchPDOInstance();
             }
 
@@ -218,6 +267,18 @@ class EasyDb
             $this->hideSensibileInfos();
             throw new Exception("Failed to connect Mysql server. Using password: " . ($hasPassword ? "YES" : "NO"), self::CONNECTION_ERROR);
         }
+    }
+
+    private function trigger($eventName, $args = [])
+    {
+        foreach ($this->callbacks[$eventName] as $callback)
+            call_user_func_array($callback, $args);
+
+    }
+
+    private function debug()
+    {
+        $this->trigger('debug', func_get_args());
     }
 
     private function hideSensibileInfos()
@@ -233,7 +294,8 @@ class ResultSet
 
     public function __construct(\PDOStatement $PDOStatement)
     {
-        return $this->statement = $PDOStatement;
+        $this->statement = $PDOStatement;
+
     }
 
     public function getPDOStatement()
@@ -259,12 +321,15 @@ class ResultSet
         return $this->statement->fetchColumn($column_number);
     }
 
-    public function fetchAll($fetch_style = null)
+    public function fetchAll($fetch_style = null, $fetch_argument = null, $ctor_args = null)
     {
         if (is_null($fetch_style))
             $fetch_style = \PDO::FETCH_ASSOC;
 
-        return $this->statement->fetchAll($fetch_style);
+        return call_user_func_array(
+            [$this->statement, "fetchAll"],
+            array_filter([$fetch_style, $fetch_argument, $ctor_args])
+        );
     }
 
     public function fetchObject($class_name = "\\stdClass", array $ctor_args = array())
