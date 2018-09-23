@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/LucaRainone/pdo-powered.svg?branch=master)](https://travis-ci.org/LucaRainone/pdo-powered)
+[![Coverage Status](https://coveralls.io/repos/github/LucaRainone/pdo-powered/badge.svg?branch=master)](https://coveralls.io/github/LucaRainone/pdo-powered?branch=master)
+
 PDOPowered is a wrapper for PDO providing these features:
 
 - **lazy connection** The PDO instance is created only when needed. Configured credentials are deleted after the connection.
