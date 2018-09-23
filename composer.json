@@ -1,7 +1,7 @@
 {
-  "name" : "rain1/easy-db",
+  "name" : "rain1/pdo-powered",
   "type": "library",
-  "description": "Db class for easy db interaction",
+  "description": "PDO wrapper for easy db interactions",
   "keywords" : ["MySQL", "SQL", "PDO", "database", "db"],
   "license" : "MIT",
   "authors" : [
@@ -11,7 +11,7 @@
     }
   ],
   "autoload": {
-    "psr-4": {"rain1\\EasyDb\\": "./src"},
+    "psr-4": {"rain1\\PDOPowered\\": "./src"},
     "exclude-from-classmap": [
       "/test/"
     ]

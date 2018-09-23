@@ -1,9 +1,9 @@
 <?php
 
-namespace rain1\EasyDb;
+namespace rain1\PDOPowered;
 
 
-class DbConfig
+class Config
 {
 
     private $dbname;

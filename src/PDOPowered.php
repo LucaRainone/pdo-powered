@@ -1,8 +1,8 @@
 <?php
 
-namespace rain1\EasyDb;
+namespace rain1\PDOPowered;
 
-class EasyDb
+class PDOPowered
 {
 
     const CONNECTION_ERROR = 1;
@@ -14,7 +14,7 @@ class EasyDb
     public static $MAX_TRY_CONNECTION = 3;
 
     /**
-     * @var DbConfig
+     * @var Config
      */
     private $dbConfig;
 
@@ -24,7 +24,7 @@ class EasyDb
         'debug' => []
     ];
 
-    public function __construct(DbConfig $dbConfig)
+    public function __construct(Config $dbConfig)
     {
         $this->dbConfig = $dbConfig;
     }
@@ -294,7 +294,11 @@ class EasyDb
     }
 }
 
-
+/**
+ * Class ResultSet
+ * @package rain1\PDOPowered
+ * @internal
+ */
 class ResultSet
 {
     private $statement;

@@ -1,14 +1,14 @@
 <?php
 
-namespace rain1\EasyDb\test;
+namespace rain1\PDOPowered\test;
 
 use PHPUnit\Framework\TestCase;
-use rain1\EasyDb\DbConfig;
-use rain1\EasyDb\EasyDb;
-use rain1\EasyDb\Exception;
-use rain1\EasyDb\Expression;
+use rain1\PDOPowered\Config;
+use rain1\PDOPowered\PDOPowered;
+use rain1\PDOPowered\Exception;
+use rain1\PDOPowered\Expression;
 
-class EasyDbTest extends TestCase
+class PDOPoweredTest extends TestCase
 {
 
     private $db;
@@ -32,7 +32,7 @@ class EasyDbTest extends TestCase
     }
 
     /**
-     * @expectedException \rain1\EasyDb\Exception
+     * @expectedException \rain1\PDOPowered\Exception
      */
     public function testSyntaxErrorQueryThrowsException()
     {
@@ -91,7 +91,7 @@ class EasyDbTest extends TestCase
 
         $db = $this->getDbInstance();
         $lastInsertId = $db->insert("tabletest", ['col1' => 'testcol1', 'col2' => 'testcol2']);
-        self::assertEquals(1, $lastInsertId, "EasyDb::insert does not returns the last insert id");
+        self::assertEquals(1, $lastInsertId, "PDOPowered::insert does not returns the last insert id");
         $row = $db->query("SELECT * FROM tabletest WHERE id = ?", [$lastInsertId])->fetch();
         self::assertEquals("testcol1", $row['col1'], "insert does not insert right things in the right place");
         self::assertEquals("testcol2", $row['col2'], "insert does not insert right things in the right place");
@@ -336,7 +336,7 @@ class EasyDbTest extends TestCase
     {
         $db = $this->importDbAndFetchInstance();
 
-        $db->onConnect(function (EasyDb $db) {
+        $db->onConnect(function (PDOPowered $db) {
             $db->setPDOAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_BOTH);
         });
 
@@ -426,7 +426,7 @@ class EasyDbTest extends TestCase
 
     public function testMysqlNotAvailable()
     {
-        $config = new DbConfig(
+        $config = new Config(
             "",
             "wrongusername",
             "wrongpass",
@@ -434,7 +434,7 @@ class EasyDbTest extends TestCase
             $GLOBALS['DB_PORT'],
             "utf8"
         );
-        $db = new EasyDb($config);
+        $db = new PDOPowered($config);
         $callbackCalled = 0;
 
         $db->onConnectionFailure(function ($try) use (&$callbackCalled) {
@@ -450,7 +450,7 @@ class EasyDbTest extends TestCase
         } catch (Exception $e) {
             self::assertNotContains("wrongpass", $e->getMessage(), "Connection error should not contains the password");
             self::assertNotEquals(0, $callbackCalled);
-            self::assertEquals(EasyDb::$MAX_TRY_CONNECTION - 1, $callbackCalled);
+            self::assertEquals(PDOPowered::$MAX_TRY_CONNECTION - 1, $callbackCalled);
         }
     }
 
@@ -472,7 +472,7 @@ class EasyDbTest extends TestCase
 
     private function getInstance()
     {
-        $config = new DbConfig(
+        $config = new Config(
             "",
             $GLOBALS['DB_USER'],
             $GLOBALS['DB_PASSWD'],
@@ -480,15 +480,15 @@ class EasyDbTest extends TestCase
             $GLOBALS['DB_PORT'],
             "utf8"
         );
-        return new EasyDb($config);
+        return new PDOPowered($config);
     }
 
     public function testLazyConnection()
     {
         $db = $this->getInstance();
-        self::assertFalse($db->isConnected(), "EasyDb should support lazy connection by default");
+        self::assertFalse($db->isConnected(), "PDOPowered should support lazy connection by default");
         $stmt = $db->query("SELECT 1");
-        self::assertTrue($db->isConnected(), "EasyDb should be connected after the first query");
+        self::assertTrue($db->isConnected(), "PDOPowered should be connected after the first query");
         self::assertInstanceOf(\PDOStatement::class, $stmt->getPDOStatement());
     }
 

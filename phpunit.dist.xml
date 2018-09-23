@@ -7,10 +7,10 @@
         <var name="DB_PASSWD" value="root" />
         <var name="DB_HOST" value="localhost" />
         <var name="DB_PORT" value="3306" />
-        <var name="DB_DBNAME" value="easydbphpunittest" />
+        <var name="DB_DBNAME" value="pdopoweredphpunittest" />
     </php>
     <testsuites>
-        <testsuite name="easy-db">
+        <testsuite name="pdo-powered">
             <directory>./test/*</directory>
         </testsuite>
     </testsuites>
