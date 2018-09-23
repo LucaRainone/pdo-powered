@@ -448,8 +448,7 @@ class PDOPoweredTest extends TestCase
 
 
         $debugCalled = false;
-        $db->onDebug(function ($type, \PDOStatement $stmt = null, ...$args) use (&$debugCalled) {
-            echo "TYPE $type: " . $stmt->queryString . " " . json_encode($args);
+        $db->onDebug(function () use (&$debugCalled) {
             $debugCalled = true;
         });
         $db->query("SELECT * FROM tabletest WHERE id = :id", ['id' => 199]);
