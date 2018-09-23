@@ -5,7 +5,6 @@ namespace rain1\PDOPowered;
 /**
  * Class ResultSet
  * @package rain1\PDOPowered
- * @internal
  */
 class ResultSet implements \IteratorAggregate
 {
