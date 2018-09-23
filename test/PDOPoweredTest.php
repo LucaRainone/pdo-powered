@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use rain1\PDOPowered\Config;
 use rain1\PDOPowered\Exception;
 use rain1\PDOPowered\Expression;
+use rain1\PDOPowered\Param\ParamJSON;
 use rain1\PDOPowered\Param\ParamString;
 use rain1\PDOPowered\PDOPowered;
 
@@ -587,5 +588,38 @@ class PDOPoweredTest extends TestCase
         $db = $this->importDbAndFetchInstance();
 
         $db->onDebug("noCallbackHere");
+    }
+
+    public function testFastQueryParam() {
+        $db = $this->importDbAndFetchInstance();
+
+        $db->insert("tabletest", [
+            'col1' => 1,
+            'col2' => 2,
+        ]);
+
+        $db->update("tabletest", [
+            'col1' => new ParamJSON([1,2,3])
+        ], ['col1' => 1]);
+
+        $row = $db->query("SELECT * FROM tabletest WHERE col1 = ?", [new ParamJSON([1,2,3])])->fetch();
+        self::assertEquals(json_encode([1,2,3]), $row['col1']);
+
+        $db->delete("tabletest", [
+            'col1' => new ParamJSON([1,2,3])
+        ]);
+
+        $row = $db->query("SELECT * FROM tabletest WHERE col1 = ?", [new ParamJSON([1,2,3])])->fetch();
+        self::assertFalse($row);
+
+        $db->insert("tabletest", [
+            'col1' => new ParamJSON([1,2,3]),
+            'col2' => 2,
+        ]);
+
+        $row = $db->query("SELECT * FROM tabletest WHERE col1 = ?", [new ParamJSON([1,2,3])])->fetch();
+        self::assertEquals(json_encode([1,2,3]), $row['col1']);
+
+
     }
 }

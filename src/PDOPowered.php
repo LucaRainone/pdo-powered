@@ -161,7 +161,17 @@ class PDOPowered
     {
         $db = $this->getPDO();
 
-        list($fields, $values) = $this->_buildFieldsAndValues($params);
+        $fields = [];
+        $values = [];
+
+        foreach ($params as $field => $value) {
+            if ($value instanceof Expression) {
+                $values[] = $value->get();
+            } else {
+                $values[] = ":$field";
+            }
+            $fields[] = $field;
+        }
 
         $implodedFields = implode(",", $fields);
         $implodedValues = implode(",", $values);
@@ -175,41 +185,13 @@ class PDOPowered
             $tail = " ON DUPLICATE KEY UPDATE " . implode(", ", $updateFields);
         }
 
-
         $qry = "INSERT INTO $table ($implodedFields) VALUES($implodedValues)$tail";
 
-        $sth = $db->prepare($qry);
+        $params = $this->_filterParams($params);
 
-        $params = array_filter($params, function ($el) {
-            return !($el instanceof Expression);
-        });
-
-        $this->debug("insert" . ($withOnDuplicateKey ? "onDuplicateKey" : ""), $sth, $qry, $params);
-
-        foreach ($params as $field => $value)
-            $sth->bindValue(":$field", $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
-
-        $res = $sth->execute();
-
-        if (!$res)
-            throw new Exception("Insert Error  ({$sth->errorCode()}) " . json_encode($sth->errorInfo()));
+        $this->query($qry, $params);
 
         return $db->lastInsertId();
-    }
-
-    private function _buildFieldsAndValues($params)
-    {
-        $fields = [];
-        $values = [];
-        foreach ($params as $field => $value) {
-            if ($value instanceof Expression) {
-                $values[] = $value->get();
-            } else {
-                $values[] = ":$field";
-            }
-            $fields[] = $field;
-        }
-        return [$fields, $values];
     }
 
     public function insertOnDuplicateKeyUpdate($table, array $params)
@@ -220,73 +202,50 @@ class PDOPowered
     public function delete($table, $where)
     {
 
-        $db = $this->getPDO();
-
         $parts = [];
+
         foreach ($where as $field => $value)
-            if (!($value instanceof Expression))
-                $parts[] = "$field = :$field";
-            else
+            if ($value instanceof Expression)
                 $parts[] = "$field = {$value->get()}";
+            else
+                $parts[] = "$field = :$field";
 
         $conditionPart = implode(" AND ", $parts);
 
-        $sth = $db->prepare("DELETE FROM $table WHERE $conditionPart");
+        $params = $this->_filterParams($where);
 
-        $this->debug("delete", $sth);
+        return $this->query("DELETE FROM $table WHERE $conditionPart", $params)->rowCount();
 
-        foreach ($where as $field => $value)
-            if (!($value instanceof Expression))
-                $sth->bindValue(":$field", $value);
-
-        $res = $sth->execute();
-
-        if (!$res)
-            throw new Exception("Delete failed ({$sth->errorCode()}) " . json_encode($sth->errorInfo()));
-
-        return $sth->rowCount();
     }
 
     public function update($table, array $array, array $where)
     {
-
-        $db = $this->getPDO();
-
         $parts = [];
-        foreach ($array as $field => $value)
-            $parts[] = ($value instanceof Expression) ? "$field = {$value->get()}" : "$field = :$field";
-
+        $params = [];
+        foreach ($array as $field => $value) {
+            if($value instanceof Expression) {
+                $parts[] = "$field = {$value->get()}";
+            }else {
+                $varname = "PDOPOW_UP_$field";
+                $parts[] =  "$field = :$varname";
+                $params[$varname] = $value;
+            }
+        }
 
         $setPart = implode(", ", $parts);
 
-
         $parts = [];
-        foreach ($where as $field => $value)
-            if (!($value instanceof Expression))
-                $parts[] = "$field = :$field";
+        foreach ($where as $field => $value) {
+            if (!($value instanceof Expression)) {
+                $varname = "PDOPOW_WH_$field";
+                $parts[] = "$field = :$varname";
+                $params[$varname] = $value;
+            }
+        }
 
         $conditionPart = implode(" AND ", $parts);
 
-        $sth = $db->prepare("UPDATE $table SET $setPart WHERE $conditionPart");
-
-        $this->debug("update", $sth);
-
-        foreach ($array as $field => $value)
-            if (!($value instanceof Expression))
-                $this->_bindValue($sth, $field, $value);
-
-
-        foreach ($where as $field => $value)
-            if (!($value instanceof Expression))
-                $this->_bindValue($sth, $field, $value);
-
-        $res = $sth->execute();
-
-        if (!$res)
-            throw new Exception("Update failed ({$sth->errorCode()})  " . json_encode($sth->errorInfo(), true));
-
-        return $sth->rowCount();
-
+        return $this->query("UPDATE $table SET $setPart WHERE $conditionPart",$params)->rowCount();
     }
 
     public function beginTransaction()
@@ -333,5 +292,12 @@ class PDOPowered
             return $this->_addListener('connect', $callback);
 
         return null;
+    }
+
+    private function _filterParams($where)
+    {
+        return array_filter($where, function($param) {
+            return !($param instanceof Expression);
+        });
     }
 }
