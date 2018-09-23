@@ -2,16 +2,19 @@
 
 namespace rain1\PDOPowered;
 
-class Expression {
+class Expression
+{
 
-	private $expression;
+    private $expression;
 
-	public function __construct($expression) {
-		$this->expression = $expression;
-	}
+    public function __construct($expression)
+    {
+        $this->expression = $expression;
+    }
 
-	public function get() {
-		return $this->expression;
-	}
+    public function get()
+    {
+        return $this->expression;
+    }
 
 }

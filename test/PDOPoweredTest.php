@@ -4,9 +4,10 @@ namespace rain1\PDOPowered\test;
 
 use PHPUnit\Framework\TestCase;
 use rain1\PDOPowered\Config;
-use rain1\PDOPowered\PDOPowered;
 use rain1\PDOPowered\Exception;
 use rain1\PDOPowered\Expression;
+use rain1\PDOPowered\Param\ParamString;
+use rain1\PDOPowered\PDOPowered;
 
 class PDOPoweredTest extends TestCase
 {
@@ -16,6 +17,36 @@ class PDOPoweredTest extends TestCase
     public function testPhpUnitXMlDist()
     {
         self::assertArrayHasKey("DB_USER", $GLOBALS, "rename phpunit.dist.xml in phpunit.xml and/or do the right thing");
+    }
+
+    public function testNativePrepare()
+    {
+        $db = $this->getDbInstance();
+        $statement = $db->prepare("SELECT * FROM tabletest");
+        self::assertInstanceOf(\PDOStatement::class, $statement);
+    }
+
+    private function getDbInstance()
+    {
+
+        if (!$this->db)
+            $this->db = $this->getInstance();
+
+        return $this->db;
+
+    }
+
+    private function getInstance()
+    {
+        $config = new Config(
+            "",
+            $GLOBALS['DB_USER'],
+            $GLOBALS['DB_PASSWD'],
+            $GLOBALS['DB_HOST'],
+            $GLOBALS['DB_PORT'],
+            "utf8"
+        );
+        return new PDOPowered($config);
     }
 
     public function testSimpleQuery()
@@ -48,6 +79,17 @@ class PDOPoweredTest extends TestCase
         $row = $db->query("SELECT ? as col", [1])->fetch();
 
         self::assertEquals("1", $row['col']);
+    }
+
+    public function testCustomParam()
+    {
+        $db = $this->getDbInstance();
+
+        $col = $db->query("SELECT ? as col", [new ParamString("Hello")])->fetchColumn();
+        self::assertEquals("Hello", $col);
+
+        $col = $db->query("SELECT :myParam as col", ['myParam' => new ParamString("Hello")])->fetchColumn();
+        self::assertEquals("Hello", $col);
     }
 
     public function testNamedParam()
@@ -97,6 +139,22 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("testcol2", $row['col2'], "insert does not insert right things in the right place");
     }
 
+    private function createCleanDatabase()
+    {
+        $db = $this->getDbInstance();
+        $db->query("CREATE DATABASE IF NOT EXISTS {$GLOBALS['DB_DBNAME']} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        $db->query("USE {$GLOBALS['DB_DBNAME']}");
+        $db->query("create table if not exists tabletest
+(
+	id int auto_increment
+		primary key,
+	col1 varchar(64) not null,
+	col2 varchar(255) not null
+	)
+		");
+        $db->query("TRUNCATE TABLE tabletest");
+    }
+
     public function testExpressionInInsert()
     {
         $this->createCleanDatabase();
@@ -120,6 +178,12 @@ class PDOPoweredTest extends TestCase
 
         $row = $db->query("SELECT * FROM tabletest WHERE id = ?", [$lastInsertId])->fetch();
         self::assertEmpty($row);
+    }
+
+    private function importDbAndFetchInstance()
+    {
+        $this->createCleanDatabase();
+        return $this->getDbInstance();
     }
 
     public function testCommitTransaction()
@@ -437,8 +501,9 @@ class PDOPoweredTest extends TestCase
         $db = new PDOPowered($config);
         $callbackCalled = 0;
 
-        $db->onConnectionFailure(function ($try) use (&$callbackCalled) {
+        $db->onConnectionFailure(function ($try, \Exception $e) use (&$callbackCalled) {
             $callbackCalled++;
+            self::assertEquals(1045, $e->getCode(), "Exception code should be equals to the mysql state error code");
             self::assertEquals($try, $callbackCalled);
         });
 
@@ -454,35 +519,6 @@ class PDOPoweredTest extends TestCase
         }
     }
 
-    private function createCleanDatabase()
-    {
-        $db = $this->getDbInstance();
-        $db->query("CREATE DATABASE IF NOT EXISTS {$GLOBALS['DB_DBNAME']} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        $db->query("USE {$GLOBALS['DB_DBNAME']}");
-        $db->query("create table if not exists tabletest
-(
-	id int auto_increment
-		primary key,
-	col1 varchar(64) not null,
-	col2 varchar(255) not null
-	)
-		");
-        $db->query("TRUNCATE TABLE tabletest");
-    }
-
-    private function getInstance()
-    {
-        $config = new Config(
-            "",
-            $GLOBALS['DB_USER'],
-            $GLOBALS['DB_PASSWD'],
-            $GLOBALS['DB_HOST'],
-            $GLOBALS['DB_PORT'],
-            "utf8"
-        );
-        return new PDOPowered($config);
-    }
-
     public function testLazyConnection()
     {
         $db = $this->getInstance();
@@ -492,19 +528,64 @@ class PDOPoweredTest extends TestCase
         self::assertInstanceOf(\PDOStatement::class, $stmt->getPDOStatement());
     }
 
-    private function getDbInstance()
+    public function testRemoveListeners()
     {
+        $db = $this->getInstance();
+        $idConnect = $db->onConnect(function () {
+            self::assertTrue(false, "onConnect callback should not be called");
+        });
+        $idDebug = $db->onDebug(function () {
+            self::assertTrue(false, "onDebug callback should not be called");
+        });
 
-        if (!$this->db)
-            $this->db = $this->getInstance();
+        $db->removeDebugListener($idDebug);
+        $db->removeOnConnectListener($idConnect);
 
-        return $this->db;
+        $db->query("SELECT 1")->fetch();
+        self::assertTrue(true);
+    }
+
+    public function testResultSetTraversable()
+    {
+        $db = $this->importDbAndFetchInstance();
+        $db->insert("tabletest", ['col1' => 1, 'col2' => 2]);
+        $db->insert("tabletest", ['col1' => 1, 'col2' => 2]);
+
+        $counterIndex = 0;
+
+        foreach ($db->query("SELECT * FROM tabletest") as $index => $row) {
+            self::assertEquals($counterIndex, $index);
+            self::assertArrayHasKey('col1', $row);
+            self::assertArrayHasKey('col2', $row);
+            $counterIndex++;
+        }
 
     }
 
-    private function importDbAndFetchInstance()
+    public function testResultSetCloseCursor()
     {
-        $this->createCleanDatabase();
-        return $this->getDbInstance();
+        $db = $this->importDbAndFetchInstance();
+        $db->insert("tabletest", ['col1' => 1, 'col2' => 2]);
+        $db->insert("tabletest", ['col1' => 1, 'col2' => 2]);
+
+        $counterIndex = 0;
+        $stmt = $db->query("SELECT * FROM tabletest");
+        foreach ($stmt as $index => $row) {
+            self::assertEquals($counterIndex, $index);
+            self::assertArrayHasKey('col1', $row);
+            self::assertArrayHasKey('col2', $row);
+            $stmt->closeCursor();
+            $counterIndex++;
+        }
+        self::assertEquals(1, $counterIndex);
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testOnMethodsWantCallback() {
+        $db = $this->importDbAndFetchInstance();
+
+        $db->onDebug("noCallbackHere");
     }
 }
