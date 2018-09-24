@@ -3,7 +3,7 @@
 namespace rain1\PDOPowered\test;
 
 use PHPUnit\Framework\TestCase;
-use rain1\PDOPowered\Config;
+use rain1\PDOPowered\Config\Config;
 use rain1\PDOPowered\Exception;
 use rain1\PDOPowered\Expression;
 use rain1\PDOPowered\Param\ParamJSON;
@@ -40,12 +40,14 @@ class PDOPoweredTest extends TestCase
     private function getInstance()
     {
         $config = new Config(
-            "",
+            "mysql",
             $GLOBALS['DB_USER'],
             $GLOBALS['DB_PASSWD'],
             $GLOBALS['DB_HOST'],
             $GLOBALS['DB_PORT'],
-            "utf8"
+            "",
+            "utf8",
+            [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES \'UTF8\'']
         );
         return new PDOPowered($config);
     }
@@ -491,11 +493,12 @@ class PDOPoweredTest extends TestCase
     public function testMysqlNotAvailable()
     {
         $config = new Config(
-            "",
+            "mysql",
             "wrongusername",
             "wrongpass",
             $GLOBALS['DB_HOST'],
             $GLOBALS['DB_PORT'],
+            "",
             "utf8"
         );
         $db = new PDOPowered($config);

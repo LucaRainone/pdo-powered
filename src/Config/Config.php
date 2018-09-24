@@ -1,44 +1,33 @@
 <?php
 
-namespace rain1\PDOPowered;
+namespace rain1\PDOPowered\Config;
 
 
-class Config
+class Config extends AbstractConfig
 {
 
     private $dbname;
-    private $type = "mysql";
-    private $user = "root";
-    private $pass = "root";
+    private $type;
     private $host = "localhost";
     private $port = 3306;
     private $charset = "utf8";
 
-    public function __construct($dbname, $user, $pass, $host, $port, $charset)
+    public function __construct($type, $user, $password, $host, $port, $dbname, $charset, $options = [])
     {
-
+        $this->type = $type;
         $this->dbname = $dbname;
         $this->user = $user;
-        $this->pass = $pass;
+        $this->password = $password;
         $this->host = $host;
         $this->port = $port;
         $this->charset = $charset;
+        $this->options = $options;
 
     }
 
-    public function getConnectionString()
+    public function getConnectionString(): string
     {
         return "{$this->type}:host={$this->host};port={$this->port};dbname={$this->dbname};charset={$this->charset}";
-    }
-
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    public function getPassword()
-    {
-        return $this->pass;
     }
 
 }

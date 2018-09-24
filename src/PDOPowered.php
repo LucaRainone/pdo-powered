@@ -2,6 +2,7 @@
 
 namespace rain1\PDOPowered;
 
+use rain1\PDOPowered\Config\ConfigInterface;
 use rain1\PDOPowered\Param\ParamInterface;
 
 class PDOPowered
@@ -12,9 +13,6 @@ class PDOPowered
     private $pdo;
     private $_isConnected = false;
     private $connectionTry = 0;
-    /**
-     * @var Config
-     */
     private $dbConfig;
 
     private $callbacks = [
@@ -23,7 +21,7 @@ class PDOPowered
         'debug' => []
     ];
 
-    public function __construct(Config $dbConfig)
+    public function __construct(ConfigInterface $dbConfig)
     {
         $this->dbConfig = $dbConfig;
     }
@@ -102,7 +100,7 @@ class PDOPowered
     private function connectAndFetchPDOInstance()
     {
         try {
-            $this->pdo = new \PDO($this->dbConfig->getConnectionString(), $this->dbConfig->getUser(), $this->dbConfig->getPassword());
+            $this->pdo = new \PDO($this->dbConfig->getConnectionString(), $this->dbConfig->getUser(), $this->dbConfig->getPassword(), $this->dbConfig->getOptions());
         } catch (\Exception $e) {
             if (++$this->connectionTry < self::$MAX_TRY_CONNECTION) {
                 $this->trigger("connectFailure", $this->connectionTry, $e);
