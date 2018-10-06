@@ -3,6 +3,7 @@
 namespace rain1\PDOPowered;
 
 use rain1\PDOPowered\Config\ConfigInterface;
+use rain1\PDOPowered\Config\DSN;
 use rain1\PDOPowered\Param\ParamInterface;
 
 class PDOPowered
@@ -24,6 +25,15 @@ class PDOPowered
     public function __construct(ConfigInterface $dbConfig)
     {
         $this->dbConfig = $dbConfig;
+    }
+
+    public static function buildFromPDOInstance(\PDO $pdo):PDOPowered
+    {
+        $config = new DSN("","","");
+        $instance = new static($config);
+        $instance->pdo = $pdo;
+        $instance->_isConnected = true;
+        return $instance;
     }
 
     public function onConnectionFailure($callback)
@@ -81,6 +91,8 @@ class PDOPowered
         $questionMark = (count($params) && key($params) === 0);
         foreach ($params as $index => $param)
             $this->_bindValue($stmt, $questionMark ? $index + 1 : $index, $param);
+
+        $this->debug("beforeQuery");
 
         $res = $stmt->execute();
 
@@ -141,7 +153,7 @@ class PDOPowered
 
     private function debug()
     {
-        call_user_func_array([$this, "trigger"], array_merge(["debug"], func_get_args()));
+        $this->trigger("debug", ...func_get_args());
     }
 
     public function prepare(...$args): \PDOStatement
