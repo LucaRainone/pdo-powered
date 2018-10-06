@@ -4,8 +4,10 @@ namespace rain1\PDOPowered\test;
 
 use PHPUnit\Framework\TestCase;
 use rain1\PDOPowered\Config\Config;
+use rain1\PDOPowered\Debug\DebugParser;
 use rain1\PDOPowered\Exception;
 use rain1\PDOPowered\Expression;
+use rain1\PDOPowered\Param\ParamInt;
 use rain1\PDOPowered\Param\ParamJSON;
 use rain1\PDOPowered\Param\ParamString;
 use rain1\PDOPowered\PDOPowered;
@@ -52,17 +54,34 @@ class PDOPoweredTest extends TestCase
         return new PDOPowered($config);
     }
 
-    public function testSimpleQuery()
+    private function _testSimpleQuery(PDOPowered $db)
     {
-
-        $db = $this->getDbInstance();
-
         $row = $db->query("SELECT 1 as const")->fetch();
 
         self::assertTrue($db->isConnected(), "Database should be connected at this point");
 
         self::assertArrayHasKey("const", $row, "default resultset is ASSOC");
-        self::assertArrayNotHasKey("0", $row, "default resultset should me ASSOC");
+
+    }
+
+    public function testInstanceWithPDO()
+    {
+        $pdo = new \PDO("mysql:host={$GLOBALS['DB_HOST']};port={$GLOBALS['DB_PORT']};dbname={$GLOBALS['DB_DBNAME']};charset=utf8", $GLOBALS['DB_USER'], $GLOBALS['DB_PASSWD']);
+
+        $db = PDOPowered::buildFromPDOInstance($pdo);
+        $this->_testSimpleQuery($db);
+
+    }
+
+    public function testSimpleQuery()
+    {
+
+        $db = $this->getDbInstance();
+
+        $this->_testSimpleQuery($db);
+        $row = $db->query("SELECT 1 as const")->fetch();
+        self::assertArrayNotHasKey("0", $row, "default resultset should be ASSOC");
+
     }
 
     /**
@@ -490,7 +509,7 @@ class PDOPoweredTest extends TestCase
         self::assertInstanceOf(\stdClass::class, $class);
     }
 
-    public function testMysqlNotAvailable()
+    public function testConnectionWithWrongCredentials()
     {
         $config = new Config(
             "mysql",
@@ -513,7 +532,7 @@ class PDOPoweredTest extends TestCase
         self::assertTrue(true, "lazy loading");
 
         try {
-            $db->query("SELECT * FROM user");
+            $db->query("SELECT * FROM tabletest");
             self::assertTrue(false, "An exception should be thrown if there are connection problem");
         } catch (Exception $e) {
             self::assertNotContains("wrongpass", $e->getMessage(), "Connection error should not contains the password");
@@ -544,8 +563,33 @@ class PDOPoweredTest extends TestCase
         $db->removeDebugListener($idDebug);
         $db->removeOnConnectListener($idConnect);
 
+
         $db->query("SELECT 1")->fetch();
         self::assertTrue(true);
+    }
+
+    public function testRemoveConnectionFailure()
+    {
+        $config = new Config(
+            "mysql",
+            "wrongusername",
+            "wrongpass",
+            $GLOBALS['DB_HOST'],
+            $GLOBALS['DB_PORT'],
+            "",
+            "utf8"
+        );
+        $db = new PDOPowered($config);
+        $idConnectionFailure = $db->onConnectionFailure(function () {
+            self::assertTrue(false, "onConnectionFailure callback should not be called");
+        });
+        $db->removeConnectionFailureListener($idConnectionFailure);
+        try {
+            $db->query("SELECT 1")->fetch();
+            self::assertFalse(true, "this code should be unreachable");
+        } catch (\Exception $e) {
+            self::assertTrue(true);
+        }
     }
 
     public function testResultSetTraversable()
@@ -622,6 +666,22 @@ class PDOPoweredTest extends TestCase
         $row = $db->query("SELECT * FROM tabletest WHERE col1 = ?", [new ParamJSON([1,2,3])])->fetch();
         self::assertEquals(json_encode([1,2,3]), $row['col1']);
 
+    }
 
+    public function testQueryOnDebugMode()
+    {
+        $db = $this->importDbAndFetchInstance();
+
+        $db->onDebug(DebugParser::onParse(function ($info) {
+            self::assertNotEmpty($info);
+        }));
+
+        $db->query("SELECT * FROM tabletest")->fetchAll();
+        $db->beginTransaction();
+        $db->insert("tabletest", ['col1' => 1, 'col2' => new ParamInt(3)]);
+        $db->update("tabletest", ['col1' => 1, 'col2' => new ParamInt(1)], ['id' => new ParamInt(1)]);
+        $db->commitTransaction();
+        $db->query("SELECT * FROM tabletest WHERE id = :id", ['id' => 1])->fetchAll();
+        $db->query("SELECT * FROM tabletest WHERE id = ?", [1])->fetchAll();
     }
 }
