@@ -5,7 +5,7 @@ PDOPowered is a wrapper for PDO providing these features:
 
 - **lazy connection** The PDO instance is created only when needed. Configured credentials are deleted after the connection.
   - with `$db->onConnect($connect)` it's possible to do something after the connection.
-- **reconnection on fails** try to reconnect if the connection fails (for `PDOPowered::$MAX_TRY_CONNECTION` tries).
+- **reconnect on failure** try to reconnect if the connection fails (for `PDOPowered::$MAX_TRY_CONNECTION` tries).
   - with `$db->onConnectionFailure($callback)` it's possible to do something after every connection fail (for example a sleep and/or error reporting)
 - **fast query params**  prepare and execute are called in `query` method. `$db->query("SELECT ?,?,?", [1,2,3])`
 - Wrapper for `PDOStatement` with powered methods:
@@ -37,6 +37,11 @@ $config->setOptions([\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES \'UTF8\'']);
 So we can instantiate the object
 ```php
 $db = new PDOPowered($config);
+```
+
+It's possible to use PDOPowered with a pre-existent PDO instance
+```
+$db = \rain1\PDOPowered\PDOPowered::buildFromPDOInstance($pdoInstance);
 ```
 
 The library provides shortcuts for insert / update / delete and update on duplicate key:
@@ -99,6 +104,14 @@ $idDebugListener = $db->onDebug(function($debugType, \PDOStatement $PDOStatement
 // for each event we can remove the listener
 $db->removeDebugListener($idDebugListener);
 
+```
+
+We provide an helper for easy debug
+
+```
+$db->onDebug(DebugParser::onParse(function ($info) {
+    print_r($info); // info for timing, query, params and finalized query
+}));
 ```
 
 Other options:
