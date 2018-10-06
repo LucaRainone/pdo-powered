@@ -46,9 +46,6 @@ class PDOPowered
         if (!is_callable($callback))
             throw new Exception("expected a callable on on* methods");
 
-        if (!isset($this->callbacks[$eventName]))
-            throw new Exception("Unknown $eventName event");
-
         $this->callbacks[$eventName][] = $callback;
         return count($this->callbacks[$eventName]);
     }
