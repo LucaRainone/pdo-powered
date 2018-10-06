@@ -66,7 +66,7 @@ class PDOPoweredTest extends TestCase
 
     public function testInstanceWithPDO()
     {
-        $pdo = new \PDO("mysql:host={$GLOBALS['DB_HOST']};port={$GLOBALS['DB_PORT']};dbname={$GLOBALS['DB_DBNAME']};charset=utf8", $GLOBALS['DB_USER'], $GLOBALS['DB_PASSWD']);
+        $pdo = new \PDO("mysql:host={$GLOBALS['DB_HOST']};port={$GLOBALS['DB_PORT']};charset=utf8", $GLOBALS['DB_USER'], $GLOBALS['DB_PASSWD']);
 
         $db = PDOPowered::buildFromPDOInstance($pdo);
         $this->_testSimpleQuery($db);
