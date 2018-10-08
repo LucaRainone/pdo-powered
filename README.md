@@ -21,22 +21,31 @@ PDOPowered is a wrapper for PDO providing following features:
 
 ## Basic Usage
 
+### Installation
 ```
 composer require rain1/pdo-powered
 ```
+or checkout https://github.com/LucaRainone/pdo-powered.git
 
+or download here (https://github.com/LucaRainone/pdo-powered/archive/master.zip)
+
+### Get Started
 An implementation of rain1\PDOPowered\Config\ConfigInterface must be passed to the constructor. 
 We provide following implementations:
 
 ```php
-$config = new \rain1\PDOPowered\Config\Config("mysql", "user", "password", "localhost", 3306, "dbname", "utf8", [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES \'UTF8\'']);
+use \rain1\PDOPowered\Config\Config;
+$config = new Config("mysql", "user", "password", "localhost", 3306, "dbname", "utf8", [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES \'UTF8\'']);
 ```
 
 or equivalent
 
 ```php
-$config = new \rain1\PDOPowered\Config\DSN("mysql:host=localhost;port=3306;dbname=dbname;charset=utf8", "user", "password");
-$config->setOptions([\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES \'UTF8\'']);
+use \rain1\PDOPowered\Config\DSN;
+$config = new DSN(
+    "mysql:host=localhost;port=3306;dbname=dbname;charset=utf8", "user", "password"
+);
+$config->setOptions([\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"]);
 ```
 
 So, we build the instance in this way:
@@ -47,7 +56,7 @@ $db = new PDOPowered($config);
 
 It's possible to use PDOPowered with a pre-existent PDO instance
 ```php
-$db = \rain1\PDOPowered\PDOPowered::buildFromPDOInstance($pdoInstance);
+$db = PDOPowered::buildFromPDOInstance($pdoInstance);
 ```
 
 The library provides shortcuts for insert / update / delete and update on duplicate key:
