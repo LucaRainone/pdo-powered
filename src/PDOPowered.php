@@ -9,7 +9,6 @@ use rain1\PDOPowered\Param\ParamInterface;
 class PDOPowered
 {
 
-    const CONNECTION_ERROR = 1;
     public static $MAX_TRY_CONNECTION = 3;
     private $pdo;
     private $_isConnected = false;
@@ -116,9 +115,8 @@ class PDOPowered
                 return $this->connectAndFetchPDOInstance();
             }
 
-            $hasPassword = !!$this->dbConfig->getPassword();
             $this->hideSensibileInfos();
-            throw new Exception("Failed to connect Mysql server. Using password: " . ($hasPassword ? "YES" : "NO"), self::CONNECTION_ERROR);
+            throw $e;
         }
         unset($this->dbConfig);
         $this->_isConnected = true;
