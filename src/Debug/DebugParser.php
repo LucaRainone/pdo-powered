@@ -23,7 +23,8 @@ class DebugParser
 
         return [
             'time' => microtime(true),
-            $type => json_encode($args)
+            'type' => $type,
+            'args' => $args
         ];
 
     }
