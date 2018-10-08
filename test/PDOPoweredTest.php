@@ -534,7 +534,7 @@ class PDOPoweredTest extends TestCase
         try {
             $db->query("SELECT * FROM tabletest");
             self::assertTrue(false, "An exception should be thrown if there are connection problem");
-        } catch (Exception $e) {
+        } catch (\PDOException $e) {
             self::assertNotContains("wrongpass", $e->getMessage(), "Connection error should not contains the password");
             self::assertNotEquals(0, $callbackCalled);
             self::assertEquals(PDOPowered::$MAX_TRY_CONNECTION - 1, $callbackCalled);
