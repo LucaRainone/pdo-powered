@@ -15,9 +15,9 @@ use rain1\PDOPowered\PDOPowered;
 class PDOPoweredTest extends TestCase
 {
 
-    private $db;
+    private ?PDOPowered $db;
 
-    private static function assertObjectHasAttribute(string $prop, mixed $obj)
+    private static function assertObjectHasAttribute(string $prop, mixed $obj): void
     {
         self::assertTrue(property_exists($obj, $prop));
     }
@@ -27,6 +27,9 @@ class PDOPoweredTest extends TestCase
         self::assertArrayHasKey("DB_USER", $GLOBALS, "rename phpunit.dist.xml in phpunit.xml and/or do the right thing");
     }
 
+    /**
+     * @throws \Exception
+     */
     public function testNativePrepare()
     {
         $db = $this->getDbInstance();
@@ -34,17 +37,17 @@ class PDOPoweredTest extends TestCase
         self::assertInstanceOf(\PDOStatement::class, $statement);
     }
 
-    private function getDbInstance()
+    private function getDbInstance(): PDOPowered
     {
 
-        if (!$this->db)
+        if (!isset($this->db))
             $this->db = $this->getInstance();
 
         return $this->db;
 
     }
 
-    private function getInstance()
+    private function getInstance(): PDOPowered
     {
         $config = new Config(
             "mysql",
@@ -170,9 +173,8 @@ class PDOPoweredTest extends TestCase
         $db->query("CREATE DATABASE IF NOT EXISTS {$GLOBALS['DB_DBNAME']} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         $db->query("USE {$GLOBALS['DB_DBNAME']}");
         $db->query("create table if not exists tabletest
-(
-	id int auto_increment
-		primary key,
+    (
+	id int AUTO_INCREMENT primary key,
 	col1 varchar(64) not null,
 	col2 varchar(255) not null
 	)

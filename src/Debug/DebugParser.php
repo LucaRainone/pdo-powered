@@ -5,11 +5,9 @@ namespace rain1\PDOPowered\Debug;
 class DebugParser
 {
     private $_lastTime;
-    private $_timeorigin;
 
     public function __construct()
     {
-        $this->_timeorigin = microtime(true);
     }
 
     public function parseDebugInfo(...$args)
