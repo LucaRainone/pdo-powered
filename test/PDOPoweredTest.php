@@ -17,6 +17,11 @@ class PDOPoweredTest extends TestCase
 
     private $db;
 
+    private static function assertObjectHasAttribute(string $prop, mixed $obj)
+    {
+        self::assertTrue(property_exists($obj, $prop));
+    }
+
     public function testPhpUnitXMlDist()
     {
         self::assertArrayHasKey("DB_USER", $GLOBALS, "rename phpunit.dist.xml in phpunit.xml and/or do the right thing");
@@ -84,11 +89,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
-    /**
-     * @expectedException \rain1\PDOPowered\Exception
-     */
     public function testSyntaxErrorQueryThrowsException()
     {
+        $this->expectException(\PDOException::class);
         $db = $this->getDbInstance();
         $db->query("SELEKT 1 as const");
 
@@ -404,8 +407,8 @@ class PDOPoweredTest extends TestCase
             $db->query("SELEKT WRONG SYNTAX");
             self::assertFalse(true, "An Exception should be thrown on a wrong query");
         } catch (\Exception $e) {
-            self::assertInstanceOf(Exception::class, $e);
-            self::assertContains("42000", $e->getMessage());
+            self::assertInstanceOf(\PDOException::class, $e);
+            self::assertStringContainsString("42000", $e->getMessage());
         }
     }
 
@@ -433,31 +436,25 @@ class PDOPoweredTest extends TestCase
         self::assertEquals(6, count($row));
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailUpdate()
     {
+        $this->expectException(\PDOException::class);
         $db = $this->importDbAndFetchInstance();
 
         $db->update("unknowntable", ['col' => 1], ['id' => 1]);
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailDelete()
     {
+        $this->expectException(\PDOException::class);
         $db = $this->importDbAndFetchInstance();
 
         $db->delete("unknowntable", ['id' => 1]);
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailInsert()
     {
+        $this->expectException(\PDOException::class);
         $db = $this->importDbAndFetchInstance();
 
         $db->delete("unknowntable", ['id' => 1]);
@@ -535,7 +532,7 @@ class PDOPoweredTest extends TestCase
             $db->query("SELECT * FROM tabletest");
             self::assertTrue(false, "An exception should be thrown if there are connection problem");
         } catch (\PDOException $e) {
-            self::assertNotContains("wrongpass", $e->getMessage(), "Connection error should not contains the password");
+            self::assertNotContains("wrongpass", [$e->getMessage()], "Connection error should not contains the password");
             self::assertNotEquals(0, $callbackCalled);
             self::assertEquals(PDOPowered::$MAX_TRY_CONNECTION - 1, $callbackCalled);
         }
@@ -627,10 +624,8 @@ class PDOPoweredTest extends TestCase
         self::assertEquals(1, $counterIndex);
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testOnMethodsWantCallback() {
+        $this->expectException(Exception::class);
         $db = $this->importDbAndFetchInstance();
 
         $db->onDebug("noCallbackHere");

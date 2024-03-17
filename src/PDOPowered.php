@@ -9,13 +9,13 @@ use rain1\PDOPowered\Param\ParamInterface;
 class PDOPowered
 {
 
-    public static $MAX_TRY_CONNECTION = 3;
-    private $pdo;
-    private $_isConnected = false;
-    private $connectionTry = 0;
-    private $dbConfig;
+    public static int $MAX_TRY_CONNECTION = 3;
+    private ?\PDO $pdo = null;
+    private bool $_isConnected = false;
+    private int $connectionTry = 0;
+    private ConfigInterface $dbConfig;
 
-    private $callbacks = [
+    private array $callbacks = [
         'connectFailure' => [],
         'connect' => [],
         'debug' => []
@@ -35,12 +35,15 @@ class PDOPowered
         return $instance;
     }
 
-    public function onConnectionFailure($callback)
+    public function onConnectionFailure($callback): int
     {
         return $this->_addListener('connectFailure', $callback);
     }
 
-    private function _addListener($eventName, $callback)
+    /**
+     * @throws Exception
+     */
+    private function _addListener($eventName, $callback): int
     {
         if (!is_callable($callback))
             throw new Exception("expected a callable on on* methods");
@@ -54,28 +57,31 @@ class PDOPowered
         $this->_removeListener('connectFailure', $idListener);
     }
 
-    private function _removeListener($namespace, $idListener)
+    private function _removeListener($namespace, $idListener): void
     {
         $index = $idListener - 1;
         if (isset($this->callbacks[$namespace][$index]))
             unset($this->callbacks[$namespace][$index]);
     }
 
-    public function onDebug($callback)
+    public function onDebug($callback): int
     {
         return $this->_addListener('debug', $callback);
     }
 
-    public function removeDebugListener($idListener)
+    public function removeDebugListener($idListener): void
     {
         $this->_removeListener('debug', $idListener);
     }
 
-    public function removeOnConnectListener($idListener)
+    public function removeOnConnectListener($idListener): void
     {
         $this->_removeListener('connect', $idListener);
     }
 
+    /**
+     * @throws Exception
+     */
     public function query($query, $params = []): ResultSet
     {
 
@@ -100,12 +106,18 @@ class PDOPowered
         return new ResultSet($stmt);
     }
 
-    protected function getPDO()
+    /**
+     * @throws \Exception
+     */
+    protected function getPDO(): \PDO
     {
         return $this->pdo ?: $this->connectAndFetchPDOInstance();
     }
 
-    private function connectAndFetchPDOInstance()
+    /**
+     * @throws \Exception
+     */
+    private function connectAndFetchPDOInstance(): ?\PDO
     {
         try {
             $this->pdo = new \PDO($this->dbConfig->getConnectionString(), $this->dbConfig->getUser(), $this->dbConfig->getPassword(), $this->dbConfig->getOptions());
@@ -125,19 +137,19 @@ class PDOPowered
         return $this->pdo;
     }
 
-    private function trigger($eventName, ...$args)
+    private function trigger($eventName, ...$args): void
     {
         foreach ($this->callbacks[$eventName] as $callback)
             call_user_func_array($callback, $args);
 
     }
 
-    private function hideSensibileInfos()
+    private function hideSensibileInfos(): void
     {
         unset($this->dbConfig);
     }
 
-    private function _bindValue(\PDOStatement $stmt, $name, $value)
+    private function _bindValue(\PDOStatement $stmt, $name, $value): void
     {
 
         if ($value instanceof ParamInterface)
@@ -146,23 +158,33 @@ class PDOPowered
             $stmt->bindValue($name, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
     }
 
-    private function debug()
+    private function debug(): void
     {
         $this->trigger("debug", ...func_get_args());
     }
 
+    /**
+     * @throws \Exception
+     */
     public function prepare(...$args): \PDOStatement
     {
         $pdo = $this->getPDO();
         return call_user_func_array([$pdo, "prepare"], $args);
     }
 
-    public function insert($table, array $params)
+    /**
+     * @throws Exception
+     */
+    public function insert($table, array $params): bool|string
     {
         return $this->_insertOrInsertOnDuplicateKey($table, $params);
     }
 
-    private function _insertOrInsertOnDuplicateKey($table, array $params, $withOnDuplicateKey = false)
+    /**
+     * @throws Exception
+     * @throws \Exception
+     */
+    private function _insertOrInsertOnDuplicateKey($table, array $params, $withOnDuplicateKey = false): bool|string
     {
         $db = $this->getPDO();
 
@@ -199,12 +221,18 @@ class PDOPowered
         return $db->lastInsertId();
     }
 
-    public function insertOnDuplicateKeyUpdate($table, array $params)
+    /**
+     * @throws Exception
+     */
+    public function insertOnDuplicateKeyUpdate($table, array $params): bool|string
     {
         return $this->_insertOrInsertOnDuplicateKey($table, $params, true);
     }
 
-    public function delete($table, $where)
+    /**
+     * @throws Exception
+     */
+    public function delete($table, $where): int
     {
 
         $parts = [];
@@ -223,7 +251,7 @@ class PDOPowered
 
     }
 
-    public function update($table, array $array, array $where)
+    public function update($table, array $array, array $where): int
     {
         $parts = [];
         $params = [];
@@ -253,33 +281,42 @@ class PDOPowered
         return $this->query("UPDATE $table SET $setPart WHERE $conditionPart",$params)->rowCount();
     }
 
-    public function beginTransaction()
+    /**
+     * @throws \Exception
+     */
+    public function beginTransaction(): void
     {
         $db = $this->getPDO();
         $this->debug("beginTransaction");
         $db->beginTransaction();
     }
 
-    public function rollbackTransaction()
+    /**
+     * @throws \Exception
+     */
+    public function rollbackTransaction(): void
     {
         $db = $this->getPDO();
         $this->debug("rollbackTransaction");
         $db->rollBack();
     }
 
-    public function commitTransaction()
+    /**
+     * @throws \Exception
+     */
+    public function commitTransaction(): void
     {
         $db = $this->getPDO();
         $this->debug("commitTransaction");
         $db->commit();
     }
 
-    public function isConnected()
+    public function isConnected(): bool
     {
         return $this->_isConnected;
     }
 
-    public function setPDOAttribute($attributeName, $attributeValue)
+    public function setPDOAttribute($attributeName, $attributeValue): void
     {
         if ($this->pdo instanceof \PDO)
             $this->pdo->setAttribute($attributeName, $attributeValue);
@@ -289,7 +326,10 @@ class PDOPowered
             });
     }
 
-    public function onConnect($callback)
+    /**
+     * @throws Exception
+     */
+    public function onConnect(callable $callback): ?int
     {
         if ($this->_isConnected)
             $callback($this);
@@ -299,7 +339,7 @@ class PDOPowered
         return null;
     }
 
-    private function _filterParams($where)
+    private function _filterParams($where): array
     {
         return array_filter($where, function($param) {
             return !($param instanceof Expression);

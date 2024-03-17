@@ -3,3 +3,5 @@ vendor
 composer.phar
 builds
 phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
