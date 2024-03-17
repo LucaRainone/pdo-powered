@@ -62,6 +62,9 @@ class PDOPoweredTest extends TestCase
         return new PDOPowered($config);
     }
 
+    /**
+     * @throws Exception
+     */
     private function _testSimpleQuery(PDOPowered $db)
     {
         $row = $db->query("SELECT 1 as const")->fetch();
@@ -81,6 +84,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testSimpleQuery()
     {
 
@@ -92,6 +98,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testSyntaxErrorQueryThrowsException()
     {
         $this->expectException(\PDOException::class);
@@ -100,6 +109,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testQuestionMarkParam()
     {
         $db = $this->getDbInstance();
@@ -109,6 +121,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("1", $row['col']);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testCustomParam()
     {
         $db = $this->getDbInstance();
@@ -120,6 +135,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("Hello", $col);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testNamedParam()
     {
         $db = $this->getDbInstance();
@@ -129,6 +147,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("myString", $row['col']);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testMultipleQuestionMarkParam()
     {
         $db = $this->getDbInstance();
@@ -139,6 +160,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("2", $row['col2']);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testMultipleNamedParams()
     {
         $db = $this->getDbInstance();
@@ -155,6 +179,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("1", $row['col3']);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testInsert()
     {
         $this->createCleanDatabase();
@@ -167,6 +194,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals("testcol2", $row['col2'], "insert does not insert right things in the right place");
     }
 
+    /**
+     * @throws Exception
+     */
     private function createCleanDatabase()
     {
         $db = $this->getDbInstance();
@@ -182,6 +212,9 @@ class PDOPoweredTest extends TestCase
         $db->query("TRUNCATE TABLE tabletest");
     }
 
+    /**
+     * @throws Exception
+     */
     public function testExpressionInInsert()
     {
         $this->createCleanDatabase();
@@ -193,6 +226,10 @@ class PDOPoweredTest extends TestCase
         self::assertEquals($today, $row['col1'], "insert does not insert right things in the right place");
     }
 
+    /**
+     * @throws Exception
+     * @throws \Exception
+     */
     public function testRollbackTransaction()
     {
         $db = $this->importDbAndFetchInstance();
@@ -207,12 +244,20 @@ class PDOPoweredTest extends TestCase
         self::assertEmpty($row);
     }
 
-    private function importDbAndFetchInstance()
+    /**
+     * @throws Exception
+     */
+    private function importDbAndFetchInstance(): PDOPowered
     {
         $this->createCleanDatabase();
         return $this->getDbInstance();
     }
 
+    /**
+     * @throws Exception
+     * @throws \Exception
+     * @throws \Exception
+     */
     public function testCommitTransaction()
     {
         $db = $this->importDbAndFetchInstance();
@@ -227,6 +272,9 @@ class PDOPoweredTest extends TestCase
         self::assertNotEmpty($row);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testUpdate()
     {
         $db = $this->importDbAndFetchInstance();
@@ -247,6 +295,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testExpressionInUpdate()
     {
         $this->createCleanDatabase();
@@ -259,6 +310,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals($today, $row['col1'], "insert does not insert right things in the right place");
     }
 
+    /**
+     * @throws Exception
+     */
     public function testInsertOnDuplicateKeyUpdate()
     {
         $db = $this->importDbAndFetchInstance();
@@ -268,10 +322,13 @@ class PDOPoweredTest extends TestCase
 
         $row1 = $db->query("SELECT* FROM tabletest WHERE id = ?", [$idRow1])->fetch();
 
-        self::assertEquals($row1['col1'], 'updatedCol1');
-        self::assertEquals($row1['col2'], 'updatedCol2');
+        self::assertEquals('updatedCol1', $row1['col1']);
+        self::assertEquals('updatedCol2', $row1['col2']);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testExpressionInInsertOnDuplicateKeyUpdate()
     {
         $db = $this->importDbAndFetchInstance();
@@ -283,9 +340,12 @@ class PDOPoweredTest extends TestCase
         $row1 = $db->query("SELECT* FROM tabletest WHERE id = ?", [$idRow1])->fetch();
 
         self::assertEquals($row1['col1'], $today);
-        self::assertEquals($row1['col2'], 'updatedCol2');
+        self::assertEquals('updatedCol2', $row1['col2']);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testDelete()
     {
         $db = $this->importDbAndFetchInstance();
@@ -304,6 +364,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testExpressionInDelete()
     {
         $db = $this->importDbAndFetchInstance();
@@ -322,6 +385,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testRowCount()
     {
         $db = $this->importDbAndFetchInstance();
@@ -335,6 +401,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals(2, $rowCount);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFetchObject()
     {
         $db = $this->importDbAndFetchInstance();
@@ -359,6 +428,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFetchObjects()
     {
         $db = $this->importDbAndFetchInstance();
@@ -381,6 +453,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFetchColumn()
     {
         $db = $this->importDbAndFetchInstance();
@@ -401,6 +476,9 @@ class PDOPoweredTest extends TestCase
         self::assertFalse($stmt->fetchColumn(1));
     }
 
+    /**
+     * @throws Exception
+     */
     public function testErrorCode()
     {
         $db = $this->importDbAndFetchInstance();
@@ -414,6 +492,9 @@ class PDOPoweredTest extends TestCase
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function testDebug()
     {
         $db = $this->importDbAndFetchInstance();
@@ -423,6 +504,9 @@ class PDOPoweredTest extends TestCase
         self::assertTrue(is_string($debug));
     }
 
+    /**
+     * @throws Exception
+     */
     public function testOverrideAttribute()
     {
         $db = $this->importDbAndFetchInstance();
@@ -438,6 +522,9 @@ class PDOPoweredTest extends TestCase
         self::assertEquals(6, count($row));
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFailUpdate()
     {
         $this->expectException(\PDOException::class);
@@ -446,6 +533,9 @@ class PDOPoweredTest extends TestCase
         $db->update("unknowntable", ['col' => 1], ['id' => 1]);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFailDelete()
     {
         $this->expectException(\PDOException::class);
@@ -454,6 +544,9 @@ class PDOPoweredTest extends TestCase
         $db->delete("unknowntable", ['id' => 1]);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFailInsert()
     {
         $this->expectException(\PDOException::class);
@@ -462,6 +555,9 @@ class PDOPoweredTest extends TestCase
         $db->delete("unknowntable", ['id' => 1]);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testDebugCallback()
     {
         $db = $this->importDbAndFetchInstance();
@@ -475,6 +571,9 @@ class PDOPoweredTest extends TestCase
         self::assertTrue($debugCalled);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testOnConnectionBeforeConnection()
     {
         $db = $this->getDbInstance();
@@ -487,6 +586,9 @@ class PDOPoweredTest extends TestCase
         self::assertTrue($onConnectCalled);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testOnConnectionAfterConnectionIsImmediate()
     {
         $db = $this->getDbInstance();
@@ -498,6 +600,9 @@ class PDOPoweredTest extends TestCase
         self::assertTrue($onConnectCalled);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testSetAttributeBeforeConnection()
     {
         $db = $this->getDbInstance();
@@ -508,6 +613,9 @@ class PDOPoweredTest extends TestCase
         self::assertInstanceOf(\stdClass::class, $class);
     }
 
+    /**
+     * @throws Exception
+     */
     public function testConnectionWithWrongCredentials()
     {
         $config = new Config(
@@ -540,6 +648,9 @@ class PDOPoweredTest extends TestCase
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function testLazyConnection()
     {
         $db = $this->getInstance();
@@ -549,6 +660,9 @@ class PDOPoweredTest extends TestCase
         self::assertInstanceOf(\PDOStatement::class, $stmt->getPDOStatement());
     }
 
+    /**
+     * @throws Exception
+     */
     public function testRemoveListeners()
     {
         $db = $this->getInstance();
@@ -591,6 +705,9 @@ class PDOPoweredTest extends TestCase
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function testResultSetTraversable()
     {
         $db = $this->importDbAndFetchInstance();
@@ -608,6 +725,9 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function testResultSetCloseCursor()
     {
         $db = $this->importDbAndFetchInstance();
@@ -633,6 +753,9 @@ class PDOPoweredTest extends TestCase
         $db->onDebug("noCallbackHere");
     }
 
+    /**
+     * @throws Exception
+     */
     public function testFastQueryParam() {
         $db = $this->importDbAndFetchInstance();
 
@@ -665,6 +788,10 @@ class PDOPoweredTest extends TestCase
 
     }
 
+    /**
+     * @throws Exception
+     * @throws \Exception
+     */
     public function testQueryOnDebugMode()
     {
         $db = $this->importDbAndFetchInstance();
