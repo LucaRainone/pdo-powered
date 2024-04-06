@@ -95,10 +95,11 @@ class PDOPowered
             $this->_bindValue($stmt, $questionMark ? $index + 1 : $index, $param);
 
         $this->debug("beforeQuery");
+        $this->debug("query", $stmt, $query, $params);
 
         $res = $stmt->execute();
 
-        $this->debug("query", $stmt, $query, $params);
+        $this->debug("afterQuery");
 
         if (!$res)
             throw new Exception("Query Error ({$stmt->errorCode()}: " . json_encode($stmt->errorInfo()));
