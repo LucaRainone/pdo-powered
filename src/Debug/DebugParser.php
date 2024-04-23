@@ -5,11 +5,9 @@ namespace rain1\PDOPowered\Debug;
 class DebugParser
 {
     private $_lastTime;
-    private $_timeorigin;
 
     public function __construct()
     {
-        $this->_timeorigin = microtime(true);
     }
 
     public function parseDebugInfo(...$args)
@@ -112,7 +110,7 @@ class DebugParser
         $quoteOpen = false;
         $final = "";
         for ($i = 0; $i < $strlen; $i++) {
-            $char = $query{$i};
+            $char = $query[$i];
             $final .= $char;
             if ($char === "'") {
                 $aposOpen = !$aposOpen;
@@ -126,7 +124,7 @@ class DebugParser
 
             if ($char === '\\') {
                 $i++;
-                $final .= $query{$i};
+                $final .= $query[$i];
                 continue;
             }
             if ($char === "?" && !$aposOpen && !$quoteOpen) {

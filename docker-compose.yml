@@ -1,0 +1,28 @@
+# Use root/example as user/password credentials
+version: '3.1'
+
+services:
+
+  php:
+    build: php
+    volumes:
+      - ./:/app
+
+  dbmysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_USER: user
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: pdopowered
+      MYSQL_ROOT_PASSWORD: example
+
+  dbpostgres:
+    build:
+      context: ./postgres
+    restart: always
+    env_file:
+      - postgres/.env
+    volumes:
+      - /var/lib/postgresql/data

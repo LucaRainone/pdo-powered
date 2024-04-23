@@ -2,6 +2,8 @@
 
 namespace rain1\PDOPowered;
 
+use ReturnTypeWillChange;
+
 /**
  * Class ResultSet
  * @package rain1\PDOPowered
@@ -10,7 +12,7 @@ class ResultSet implements \IteratorAggregate
 {
     private $statement;
 
-    public function getIterator()
+    #[ReturnTypeWillChange] public function getIterator()
     {
         return $this->statement;
     }
@@ -22,17 +24,17 @@ class ResultSet implements \IteratorAggregate
 
     }
 
-    public function getPDOStatement()
+    public function getPDOStatement(): \PDOStatement
     {
         return $this->statement;
     }
 
     public function fetch($fetch_style = null, $cursor_orientation = \PDO::FETCH_ORI_NEXT, $cursor_offset = 0)
     {
-        return $this->statement->fetch($fetch_style, $cursor_orientation, $cursor_offset);
+        return $this->statement->fetch($fetch_style ?? \PDO::FETCH_DEFAULT, $cursor_orientation, $cursor_offset);
     }
 
-    public function rowCount()
+    public function rowCount(): int
     {
         return $this->statement->rowCount();
     }
@@ -55,7 +57,7 @@ class ResultSet implements \IteratorAggregate
         return $this->statement->fetchObject($class_name, $ctor_args);
     }
 
-    public function fetchObjects($class_name = "\\stdClass", array $ctor_args = array())
+    public function fetchObjects($class_name = "\\stdClass", array $ctor_args = array()): array
     {
         $rows = [];
         while (($_row = $this->statement->fetchObject($class_name, $ctor_args)))
@@ -64,12 +66,12 @@ class ResultSet implements \IteratorAggregate
         return $rows;
     }
 
-    public function closeCursor()
+    public function closeCursor(): bool
     {
         return $this->statement->closeCursor();
     }
 
-    public function debugDumpParams()
+    public function debugDumpParams(): bool|string
     {
         ob_start();
         $this->statement->debugDumpParams();

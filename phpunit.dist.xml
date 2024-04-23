@@ -1,22 +1,25 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<phpunit  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.1/phpunit.xsd"
-          backupGlobals="false">
-    <php>
-        <var name="DB_USER" value="root" />
-        <var name="DB_PASSWD" value="" />
-        <var name="DB_HOST" value="127.0.0.1" />
-        <var name="DB_PORT" value="3306" />
-        <var name="DB_DBNAME" value="test" />
-    </php>
-    <testsuites>
-        <testsuite name="pdo-powered">
-            <directory>./test/*</directory>
-        </testsuite>
-    </testsuites>
-    <filter>
-        <whitelist>
-            <directory suffix=".php">./src</directory>
-        </whitelist>
-    </filter>
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         backupGlobals="false" cacheDirectory=".phpunit.cache">
+  <php>
+    <var name="DB_USER" value="user"/>
+    <var name="DB_PASSWD" value="example"/>
+    <var name="DB_HOST" value="dbmysql"/>
+    <var name="DB_PORT" value="3306"/>
+    <var name="DB_DBNAME" value="pdopowered"/>
+  </php>
+  <testsuites>
+    <testsuite name="pdo-powered">
+      <directory>./test/*</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory suffix=".php">./src</directory>
+    </include>
+  </source>
 </phpunit>

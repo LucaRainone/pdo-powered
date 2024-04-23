@@ -27,7 +27,12 @@ class Config extends AbstractConfig
 
     public function getConnectionString(): string
     {
-        return "{$this->type}:host={$this->host};port={$this->port};dbname={$this->dbname};charset={$this->charset}";
+        if($this->type==="pgsql") {
+            $charsetOption = "options='-c client_encoding={$this->charset}'";
+        }else {
+            $charsetOption = "charset={$this->charset}";
+        }
+        return "{$this->type}:host={$this->host};port={$this->port};dbname={$this->dbname};$charsetOption";
     }
 
 }
